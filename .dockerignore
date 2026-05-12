@@ -1,0 +1,14 @@
+__pycache__
+*.pyc
+.env
+.env.*
+!.env.example
+.venv
+venv
+node_modules
+.next
+postgres_data
+redis_data
+chroma_data
+*.log
+logs/

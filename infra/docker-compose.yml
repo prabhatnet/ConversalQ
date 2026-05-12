@@ -1,0 +1,76 @@
+# =============================================================================
+# ConversalQ — Docker Compose (Production Base)
+# =============================================================================
+
+services:
+  # --- Backend API ---
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=conversalq
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-conversalq_prod_password}
+      - POSTGRES_DB=conversalq
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - conversalq-net
+
+  # --- PostgreSQL ---
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: conversalq
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-conversalq_prod_password}
+      POSTGRES_DB: conversalq
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U conversalq"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - conversalq-net
+
+  # --- Redis ---
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - conversalq-net
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  conversalq-net:
+    driver: bridge
