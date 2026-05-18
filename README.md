@@ -20,14 +20,16 @@ cd backend
 python -m venv .venv
 .venv\Scripts\activate  # Windows
 pip install -r requirements.txt
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+# Start server (Windows — uses venv automatically)
+powershell -ExecutionPolicy RemoteSigned -File start_server.ps1
+Or,
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 (In Powershell)
 ```
 
 ## API Documentation
 
 Once running, visit:
 - Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
 - Health Check: http://localhost:8000/api/v1/health
 
 ## Sample API Requests
@@ -72,7 +74,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for full system design.
 ## Development Phases
 
 - [x] Phase 1: Foundation — FastAPI + OpenAI + Streaming
-- [ ] Phase 2: RAG + Vector Database
+- [x] Phase 2: RAG + Vector Database
 - [ ] Phase 3: Multi-Agent Orchestration (LangGraph)
 - [ ] Phase 4: Memory + Session Handling
 - [ ] Phase 5: Voice AI Integration

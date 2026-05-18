@@ -22,6 +22,7 @@ from app.repositories.conversation_repo import ConversationRepository
 from app.repositories.message_repo import MessageRepository
 from app.schemas.chat import ChatResponse
 from app.services.llm_service import LLMService
+from app.services.knowledge_service import KnowledgeService
 
 logger = structlog.get_logger(__name__)
 
@@ -34,10 +35,12 @@ class ChatService:
         llm_service: LLMService,
         conversation_repo: ConversationRepository,
         message_repo: MessageRepository,
+        knowledge_service: Optional[KnowledgeService] = None,
     ):
         self._llm = llm_service
         self._conversations = conversation_repo
         self._messages = message_repo
+        self._knowledge = knowledge_service
 
     async def process_message(
         self,
@@ -70,8 +73,21 @@ class ChatService:
         history = await self._messages.get_by_conversation(conversation.id, limit=20)
         llm_messages = [{"role": msg.role, "content": msg.content} for msg in history]
 
+        # Step 3b: RAG — retrieve relevant knowledge-base context
+        rag_system_addendum = ""
+        if self._knowledge:
+            retrieval = await self._knowledge.retrieve_context(message)
+            if retrieval.has_context:
+                rag_system_addendum = (
+                    "\n\n--- Relevant Knowledge Base Context ---\n"
+                    + retrieval.formatted_context
+                    + "\n--- End of Context ---\n"
+                    + "\nUse the above context to inform your response. "
+                    "Always cite the source document when referencing knowledge base content."
+                )
+
         # Step 4: Generate LLM response
-        result = await self._llm.generate_response(llm_messages)
+        result = await self._llm.generate_response(llm_messages, system_prompt_addendum=rag_system_addendum)
 
         # Step 5: Persist assistant response
         assistant_message = await self._messages.create_message(
@@ -122,11 +138,24 @@ class ChatService:
         history = await self._messages.get_by_conversation(conversation.id, limit=20)
         llm_messages = [{"role": msg.role, "content": msg.content} for msg in history]
 
+        # RAG context
+        rag_system_addendum = ""
+        if self._knowledge:
+            retrieval = await self._knowledge.retrieve_context(message)
+            if retrieval.has_context:
+                rag_system_addendum = (
+                    "\n\n--- Relevant Knowledge Base Context ---\n"
+                    + retrieval.formatted_context
+                    + "\n--- End of Context ---\n"
+                    + "\nUse the above context to inform your response. "
+                    "Always cite the source document when referencing knowledge base content."
+                )
+
         # Stream response
         full_response = ""
         start_time = time.perf_counter()
 
-        async for token in self._llm.generate_response_stream(llm_messages):
+        async for token in self._llm.generate_response_stream(llm_messages, system_prompt_addendum=rag_system_addendum):
             full_response += token
             yield f"data: {json.dumps({'token': token})}\n\n"
 

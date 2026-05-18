@@ -9,7 +9,7 @@ Architecture Decision:
 - Falls back to in-memory repositories when PostgreSQL is unavailable
 """
 
-from typing import AsyncGenerator
+from typing import AsyncGenerator, Optional
 
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,6 +21,7 @@ from app.repositories.in_memory import InMemoryConversationRepository, InMemoryM
 from app.repositories.message_repo import MessageRepository
 from app.services.chat_service import ChatService
 from app.services.llm_service import LLMService
+from app.services.knowledge_service import KnowledgeService
 
 
 async def get_db(
@@ -52,16 +53,35 @@ def get_message_repo(
     return MessageRepository(session=db)
 
 
+def get_knowledge_service() -> Optional[KnowledgeService]:
+    """
+    Provide the KnowledgeService — returns None if ChromaDB is unavailable.
+
+    The ChatService and knowledge endpoints handle None gracefully (RAG is
+    simply skipped / returns empty results).
+    """
+    from app.core.events import chroma_available
+    from app.rag.vector_store import get_vector_store
+    from app.rag.embeddings import get_embeddings_service
+
+    if not chroma_available:
+        return None
+
+    return KnowledgeService(
+        vector_store=get_vector_store(),
+        embeddings_service=get_embeddings_service(),
+    )
+
+
 def get_chat_service(
     llm_service: LLMService = Depends(get_llm_service),
+    knowledge_service: Optional[KnowledgeService] = Depends(get_knowledge_service),
 ) -> ChatService:
     """Provide the chat service — uses DB repos or in-memory fallback."""
     from app.core.events import db_available
 
     if db_available:
-        # This path requires DB session — will be used when PostgreSQL is running
-        # For now, fall through to in-memory since DI can't conditionally inject
-        pass
+        pass  # TODO: inject DB repos when PostgreSQL is running
 
     # Use in-memory repositories (works without PostgreSQL)
     conversation_repo = InMemoryConversationRepository()
@@ -71,4 +91,5 @@ def get_chat_service(
         llm_service=llm_service,
         conversation_repo=conversation_repo,
         message_repo=message_repo,
+        knowledge_service=knowledge_service,
     )

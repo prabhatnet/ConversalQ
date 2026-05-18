@@ -62,6 +62,14 @@ class Settings(BaseSettings):
     # --- CORS ---
     cors_origins: List[str] = ["http://localhost:3000", "http://localhost:8000"]
 
+    # --- ChromaDB (Phase 2) ---
+    chroma_host: str = "localhost"
+    chroma_port: int = 8001
+    chroma_collection: str = "conversalq_kb"
+
+    # --- Embeddings (Phase 2) ---
+    embedding_model: str = "text-embedding-3-small"
+
     @property
     def database_url(self) -> str:
         """Construct async PostgreSQL connection URL."""

@@ -22,10 +22,16 @@ services:
       - REDIS_PORT=6379
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o}
+      - CHROMA_HOST=chromadb
+      - CHROMA_PORT=8000
+      - CHROMA_COLLECTION=${CHROMA_COLLECTION:-conversalq_kb}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-text-embedding-3-small}
     depends_on:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      chromadb:
         condition: service_healthy
     restart: unless-stopped
     networks:
@@ -67,9 +73,29 @@ services:
     networks:
       - conversalq-net
 
+  # --- ChromaDB (Phase 2) ---
+  chromadb:
+    image: chromadb/chroma:0.6.3
+    ports:
+      - "8001:8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+    environment:
+      - CHROMA_SERVER_AUTH_CREDENTIALS_PROVIDER=chromadb.auth.token.TokenConfigServerAuthCredentialsProvider
+      - ANONYMIZED_TELEMETRY=false
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - conversalq-net
+
 volumes:
   postgres_data:
   redis_data:
+  chroma_data:
 
 networks:
   conversalq-net:

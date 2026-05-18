@@ -52,6 +52,7 @@ class LLMService:
         self,
         messages: List[dict],
         system_prompt: Optional[str] = None,
+        system_prompt_addendum: str = "",
     ) -> dict:
         """
         Generate a complete (non-streaming) LLM response.
@@ -59,7 +60,7 @@ class LLMService:
         Returns:
             dict with keys: content, model, token_count, latency_ms
         """
-        full_messages = self._build_messages(messages, system_prompt)
+        full_messages = self._build_messages(messages, system_prompt, system_prompt_addendum)
         start_time = time.perf_counter()
 
         try:
@@ -101,6 +102,7 @@ class LLMService:
         self,
         messages: List[dict],
         system_prompt: Optional[str] = None,
+        system_prompt_addendum: str = "",
     ) -> AsyncIterator[str]:
         """
         Generate a streaming LLM response, yielding tokens as they arrive.
@@ -108,7 +110,7 @@ class LLMService:
         Yields:
             Individual content tokens as strings.
         """
-        full_messages = self._build_messages(messages, system_prompt)
+        full_messages = self._build_messages(messages, system_prompt, system_prompt_addendum)
 
         try:
             stream = await self._client.chat.completions.create(
@@ -137,7 +139,8 @@ class LLMService:
         self,
         messages: List[dict],
         system_prompt: Optional[str] = None,
+        system_prompt_addendum: str = "",
     ) -> List[dict]:
-        """Prepend system prompt to message list."""
-        system = system_prompt or SYSTEM_PROMPT
+        """Prepend system prompt (with optional RAG addendum) to message list."""
+        system = (system_prompt or SYSTEM_PROMPT) + system_prompt_addendum
         return [{"role": "system", "content": system}] + messages
