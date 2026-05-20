@@ -11,14 +11,14 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
-import logging
 from typing import Dict, List
 
+import structlog
 from openai import AsyncOpenAI
 
 from app.config import get_settings
 
-log = logging.getLogger(__name__)
+log = structlog.get_logger(__name__)
 
 # Maximum texts per batch call — OpenAI supports up to 2 048 inputs but
 # smaller batches are friendlier on rate limits and memory.

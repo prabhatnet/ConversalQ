@@ -19,18 +19,18 @@ Each document chunk is stored as:
 from __future__ import annotations
 
 import asyncio
-import logging
 from typing import Dict, List, Optional
 from uuid import uuid4
 
 import chromadb
 from chromadb import Collection
 from chromadb.config import Settings as ChromaSettings
+import structlog
 
 from app.config import get_settings
 from app.rag.chunking import DocumentChunk
 
-log = logging.getLogger(__name__)
+log = structlog.get_logger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -97,6 +97,10 @@ class VectorStore:
         settings = get_settings()
 
         def _connect() -> None:
+            # Suppress ChromaDB's telemetry before client init
+            import os
+            os.environ.setdefault("ANONYMIZED_TELEMETRY", "False")
+
             self._client = chromadb.HttpClient(
                 host=settings.chroma_host,
                 port=settings.chroma_port,

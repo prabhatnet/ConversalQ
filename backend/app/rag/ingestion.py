@@ -17,11 +17,11 @@ Returns an IngestionResult with counts for observability.
 from __future__ import annotations
 
 import io
-import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
+import structlog
 import pypdf
 import docx  # python-docx
 
@@ -29,7 +29,7 @@ from app.rag.chunking import DocumentChunk, chunk_text
 from app.rag.embeddings import EmbeddingsService
 from app.rag.vector_store import VectorStore
 
-log = logging.getLogger(__name__)
+log = structlog.get_logger(__name__)
 
 _SUPPORTED_EXTENSIONS = {".pdf", ".docx", ".txt", ".md"}
 

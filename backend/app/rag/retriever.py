@@ -15,14 +15,14 @@ context   = await retriever.retrieve("What is our refund policy?")
 
 from __future__ import annotations
 
-import logging
+import structlog
 from dataclasses import dataclass, field
 from typing import List, Optional
 
 from app.rag.embeddings import EmbeddingsService
 from app.rag.vector_store import RetrievedChunk, VectorStore
 
-log = logging.getLogger(__name__)
+log = structlog.get_logger(__name__)
 
 # Minimum relevance score (0-1) to include a chunk in context.
 # Chunks below this threshold are discarded as noise.

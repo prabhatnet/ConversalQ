@@ -13,7 +13,7 @@ direct KB management operations.
 
 from __future__ import annotations
 
-import logging
+import structlog
 from typing import List, Optional
 
 from app.rag.embeddings import EmbeddingsService
@@ -21,7 +21,7 @@ from app.rag.ingestion import IngestionPipeline, IngestionResult
 from app.rag.retriever import RAGRetriever, RetrievalContext
 from app.rag.vector_store import VectorStore
 
-log = logging.getLogger(__name__)
+log = structlog.get_logger(__name__)
 
 
 class KnowledgeService:

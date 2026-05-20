@@ -51,7 +51,7 @@ async def on_startup(settings: Settings) -> None:
         logger.warning(
             "chromadb_unavailable_rag_disabled",
             error=str(e),
-            hint="Start ChromaDB via Docker: docker-compose up chromadb",
+            hint="Start ChromaDB via Docker: docker compose up chromadb (from the infra/ directory)",
         )
 
 
