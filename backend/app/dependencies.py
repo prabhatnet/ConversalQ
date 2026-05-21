@@ -74,21 +74,13 @@ def get_knowledge_service() -> Optional[KnowledgeService]:
 
 
 def get_chat_service(
-    llm_service: LLMService = Depends(get_llm_service),
     knowledge_service: Optional[KnowledgeService] = Depends(get_knowledge_service),
 ) -> ChatService:
-    """Provide the chat service — uses DB repos or in-memory fallback."""
-    from app.core.events import db_available
-
-    if db_available:
-        pass  # TODO: inject DB repos when PostgreSQL is running
-
-    # Use in-memory repositories (works without PostgreSQL)
+    """Provide the chat service — uses in-memory repos, agent graph for LLM."""
     conversation_repo = InMemoryConversationRepository()
     message_repo = InMemoryMessageRepository()
 
     return ChatService(
-        llm_service=llm_service,
         conversation_repo=conversation_repo,
         message_repo=message_repo,
         knowledge_service=knowledge_service,

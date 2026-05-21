@@ -44,7 +44,18 @@ pypdf==5.4.0
 python-docx==1.1.2
 
 # --- Text splitting ---
-langchain-text-splitters==0.3.8
+langchain-text-splitters==1.1.2
 
 # --- Tiktoken (token counting for chunking) ---
 tiktoken==0.9.0
+
+# =============================================================================
+# Phase 3: Multi-Agent Orchestration
+# =============================================================================
+
+# --- LangGraph (agent state machine) ---
+langgraph==1.2.0
+
+# --- LangChain OpenAI + Core ---
+langchain-openai==1.2.1
+langchain-core==1.4.0

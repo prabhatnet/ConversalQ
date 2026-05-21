@@ -75,7 +75,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for full system design.
 
 - [x] Phase 1: Foundation — FastAPI + OpenAI + Streaming
 - [x] Phase 2: RAG + Vector Database
-- [ ] Phase 3: Multi-Agent Orchestration (LangGraph)
+- [x] Phase 3: Multi-Agent Orchestration (LangGraph)
 - [ ] Phase 4: Memory + Session Handling
 - [ ] Phase 5: Voice AI Integration
 - [ ] Phase 6: Observability + Analytics

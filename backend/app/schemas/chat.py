@@ -8,7 +8,7 @@ Architecture Decision:
 """
 
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -49,3 +49,9 @@ class ChatResponse(BaseModel):
     token_count: Optional[int] = Field(default=None, description="Total tokens consumed.")
     latency_ms: int = Field(description="Processing time in milliseconds.")
     created_at: datetime = Field(description="Timestamp of response generation.")
+    # Phase 3 — agent metadata
+    intent: Optional[str] = Field(default=None, description="Classified intent (billing, technical, account, general, escalation).")
+    agent_name: Optional[str] = Field(default=None, description="Specialist agent that generated the response.")
+    confidence: Optional[float] = Field(default=None, description="Router confidence score.")
+    rag_sources: List[str] = Field(default_factory=list, description="Source documents used for RAG context.")
+    should_escalate: bool = Field(default=False, description="True if the conversation should be escalated to a human agent.")

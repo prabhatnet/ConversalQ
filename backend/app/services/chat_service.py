@@ -1,12 +1,9 @@
 """
-Chat Service — orchestrates chat interactions.
+Chat Service — orchestrates chat interactions via the multi-agent graph.
 
-Architecture Decision:
-- Service layer contains all business logic
-- Coordinates between LLM service and data repositories
-- Handles conversation lifecycle (create, continue)
-- Builds message history for context injection
-- Streaming implemented as an async generator yielding SSE-formatted data
+Phase 3 upgrade: all LLM calls go through AgentOrchestrationService which
+runs the LangGraph router → specialist pipeline. The HTTP contracts
+(ChatRequest / ChatResponse) are unchanged.
 """
 
 import json
@@ -17,30 +14,30 @@ from uuid import UUID
 
 import structlog
 
+from app.agents.orchestration import AgentOrchestrationService
+from app.config import get_settings
 from app.core.exceptions import ConversationNotFoundError
 from app.repositories.conversation_repo import ConversationRepository
 from app.repositories.message_repo import MessageRepository
 from app.schemas.chat import ChatResponse
-from app.services.llm_service import LLMService
 from app.services.knowledge_service import KnowledgeService
 
 logger = structlog.get_logger(__name__)
 
 
 class ChatService:
-    """Orchestrates chat message processing with LLM and persistence."""
+    """Orchestrates chat message processing through the multi-agent graph."""
 
     def __init__(
         self,
-        llm_service: LLMService,
         conversation_repo: ConversationRepository,
         message_repo: MessageRepository,
         knowledge_service: Optional[KnowledgeService] = None,
     ):
-        self._llm = llm_service
         self._conversations = conversation_repo
         self._messages = message_repo
         self._knowledge = knowledge_service
+        self._agent = AgentOrchestrationService(knowledge_service=knowledge_service)
 
     async def process_message(
         self,
@@ -48,14 +45,14 @@ class ChatService:
         conversation_id: Optional[UUID] = None,
     ) -> ChatResponse:
         """
-        Process a user message and generate a complete AI response.
+        Process a user message through the multi-agent graph.
 
         1. Load or create conversation
         2. Persist user message
-        3. Build message history for context
-        4. Call LLM for response
+        3. Build history for graph context
+        4. Run agent graph (router → specialist)
         5. Persist assistant response
-        6. Return structured response
+        6. Return enriched ChatResponse
         """
         start_time = time.perf_counter()
 
@@ -69,47 +66,46 @@ class ChatService:
             content=message,
         )
 
-        # Step 3: Build context from conversation history
-        history = await self._messages.get_by_conversation(conversation.id, limit=20)
-        llm_messages = [{"role": msg.role, "content": msg.content} for msg in history]
+        # Step 3: Build history (exclude the message we just saved)
+        history_msgs = await self._messages.get_by_conversation(conversation.id, limit=20)
+        # history_msgs includes the user message we just saved; exclude it
+        # so the agent gets prior turns only
+        history = [
+            {"role": msg.role, "content": msg.content}
+            for msg in history_msgs[:-1]  # all but last (which is the current user msg)
+        ]
 
-        # Step 3b: RAG — retrieve relevant knowledge-base context
-        rag_system_addendum = ""
-        if self._knowledge:
-            retrieval = await self._knowledge.retrieve_context(message)
-            if retrieval.has_context:
-                rag_system_addendum = (
-                    "\n\n--- Relevant Knowledge Base Context ---\n"
-                    + retrieval.formatted_context
-                    + "\n--- End of Context ---\n"
-                    + "\nUse the above context to inform your response. "
-                    "Always cite the source document when referencing knowledge base content."
-                )
-
-        # Step 4: Generate LLM response
-        result = await self._llm.generate_response(llm_messages, system_prompt_addendum=rag_system_addendum)
+        # Step 4: Run agent graph
+        agent_response = await self._agent.process(
+            user_message=message,
+            history=history,
+        )
 
         # Step 5: Persist assistant response
+        settings = get_settings()
         assistant_message = await self._messages.create_message(
             conversation_id=conversation.id,
             role="assistant",
-            content=result["content"],
-            model=result["model"],
-            token_count=result["token_count"],
-            latency_ms=result["latency_ms"],
+            content=agent_response.content,
+            model=settings.openai_model,
+            agent_name=agent_response.active_agent,
+            latency_ms=agent_response.latency_ms,
         )
 
         elapsed_ms = int((time.perf_counter() - start_time) * 1000)
 
-        # Step 6: Return response
         return ChatResponse(
             conversation_id=conversation.id,
             message_id=assistant_message.id,
-            response=result["content"],
-            model=result["model"],
-            token_count=result["token_count"],
+            response=agent_response.content,
+            model=settings.openai_model,
             latency_ms=elapsed_ms,
             created_at=assistant_message.created_at,
+            intent=agent_response.intent,
+            agent_name=agent_response.active_agent,
+            confidence=agent_response.confidence,
+            rag_sources=agent_response.rag_sources,
+            should_escalate=agent_response.should_escalate,
         )
 
     async def process_message_stream(
@@ -118,59 +114,51 @@ class ChatService:
         conversation_id: Optional[UUID] = None,
     ) -> AsyncIterator[str]:
         """
-        Process a user message and stream the AI response via SSE.
+        Process a user message and stream tokens via SSE.
 
-        Yields SSE-formatted data events:
-        - data: {"token": "..."} — for each content chunk
-        - data: {"done": true, "conversation_id": "..."} — on completion
+        Yields:
+        - ``data: {"token": "..."}`` for each content chunk
+        - ``data: {"done": true, "conversation_id": "...", "intent": "...", "agent_name": "..."}`` on completion
         """
-        # Resolve conversation
         conversation = await self._resolve_conversation(conversation_id)
 
-        # Persist user message
         await self._messages.create_message(
             conversation_id=conversation.id,
             role="user",
             content=message,
         )
 
-        # Build context
-        history = await self._messages.get_by_conversation(conversation.id, limit=20)
-        llm_messages = [{"role": msg.role, "content": msg.content} for msg in history]
+        history_msgs = await self._messages.get_by_conversation(conversation.id, limit=20)
+        history = [
+            {"role": msg.role, "content": msg.content}
+            for msg in history_msgs[:-1]
+        ]
 
-        # RAG context
-        rag_system_addendum = ""
-        if self._knowledge:
-            retrieval = await self._knowledge.retrieve_context(message)
-            if retrieval.has_context:
-                rag_system_addendum = (
-                    "\n\n--- Relevant Knowledge Base Context ---\n"
-                    + retrieval.formatted_context
-                    + "\n--- End of Context ---\n"
-                    + "\nUse the above context to inform your response. "
-                    "Always cite the source document when referencing knowledge base content."
-                )
-
-        # Stream response
         full_response = ""
         start_time = time.perf_counter()
 
-        async for token in self._llm.generate_response_stream(llm_messages, system_prompt_addendum=rag_system_addendum):
+        # First, run a non-streaming pass to get routing metadata
+        # then stream a second pass for the actual response tokens.
+        # We use process_stream which streams from the specialist LLM call.
+        async for token in self._agent.process_stream(
+            user_message=message,
+            history=history,
+        ):
             full_response += token
             yield f"data: {json.dumps({'token': token})}\n\n"
 
         elapsed_ms = int((time.perf_counter() - start_time) * 1000)
 
-        # Persist complete response
+        # Persist the complete response
+        settings = get_settings()
         await self._messages.create_message(
             conversation_id=conversation.id,
             role="assistant",
             content=full_response,
-            model=self._llm._model,
+            model=settings.openai_model,
             latency_ms=elapsed_ms,
         )
 
-        # Signal completion
         yield f"data: {json.dumps({'done': True, 'conversation_id': str(conversation.id)})}\n\n"
 
     async def _resolve_conversation(self, conversation_id: Optional[UUID]):
@@ -180,6 +168,4 @@ class ChatService:
             if not conversation:
                 raise ConversationNotFoundError(str(conversation_id))
             return conversation
-
-        # Create new conversation
         return await self._conversations.create_new(channel="chat")

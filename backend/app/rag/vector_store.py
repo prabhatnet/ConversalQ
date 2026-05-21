@@ -180,6 +180,19 @@ class VectorStore:
         await asyncio.to_thread(_delete)
         log.info("Deleted document chunks", source_document=source_document)
 
+    async def reset_collection(self) -> None:
+        """Delete and recreate the collection — wipes all data."""
+
+        def _reset() -> None:
+            self._client.delete_collection(self._collection_name)  # type: ignore[union-attr]
+            self._collection = self._client.get_or_create_collection(  # type: ignore[union-attr]
+                name=self._collection_name,
+                metadata={"hnsw:space": "l2"},
+            )
+
+        await asyncio.to_thread(_reset)
+        log.info("Collection reset", collection=self._collection_name)
+
     # ------------------------------------------------------------------
     # Query operations
     # ------------------------------------------------------------------

@@ -171,3 +171,19 @@ async def delete_document(
 ) -> DeleteDocumentResponse:
     await knowledge_service.delete_document(filename)
     return DeleteDocumentResponse(source_document=filename, deleted=True)
+
+
+# ---------------------------------------------------------------------------
+# Reset (dev utility)
+# ---------------------------------------------------------------------------
+@router.delete(
+    "/reset",
+    summary="Reset the entire knowledge base",
+    description="Deletes and recreates the ChromaDB collection. All indexed documents are permanently removed.",
+    responses={200: {"content": {"application/json": {"example": {"reset": True}}}}},
+)
+async def reset_knowledge_base(
+    knowledge_service: KnowledgeService = Depends(get_knowledge_service),
+) -> dict:
+    await knowledge_service.reset()
+    return {"reset": True}

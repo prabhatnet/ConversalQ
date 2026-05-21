@@ -142,6 +142,14 @@ class KnowledgeService:
         await self._store.delete_document(filename)
         log.info("Document deleted from KB", filename=filename)
 
+    async def reset(self) -> None:
+        """Wipe the entire knowledge base collection."""
+        if not self._store.is_connected:
+            log.warning("Vector store not connected — cannot reset")
+            return
+        await self._store.reset_collection()
+        log.info("Knowledge base reset")
+
     async def get_stats(self) -> dict:
         """Return basic KB statistics."""
         if not self._store.is_connected:
