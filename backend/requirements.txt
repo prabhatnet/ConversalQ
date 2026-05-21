@@ -8,7 +8,7 @@ uvicorn[standard]==0.34.0
 python-multipart==0.0.20
 
 # --- OpenAI ---
-openai==1.82.0
+openai==2.37.0
 
 # --- Database ---
 sqlalchemy[asyncio]==2.0.36

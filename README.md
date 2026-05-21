@@ -24,6 +24,8 @@ pip install -r requirements.txt
 powershell -ExecutionPolicy RemoteSigned -File start_server.ps1
 Or,
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 (In Powershell)
+Or, 
+C:\GitProjects\ConversalQ\backend\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 --app-dir C:\GitProjects\ConversalQ\backend
 ```
 
 ## API Documentation
