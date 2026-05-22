@@ -59,3 +59,9 @@ langgraph==1.2.0
 # --- LangChain OpenAI + Core ---
 langchain-openai==1.2.1
 langchain-core==1.4.0
+
+# =============================================================================
+# Phase 4: Memory + Session Handling
+# (No additional packages — builds on Phase 3 LangGraph / LangChain stack)
+# ConversationMemoryService uses: langchain-openai, langchain-core, structlog
+# =============================================================================

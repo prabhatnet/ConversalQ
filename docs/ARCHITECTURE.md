@@ -98,23 +98,38 @@ ConversalQ is an enterprise-grade AI Call Center Assistant that orchestrates mul
 - Knowledge base management API
 
 ### Phase 3: Multi-Agent Orchestration
-**Objectives:**
-- LangGraph state machine setup
-- Implement all 10 specialized agents
-- Agent supervisor/router pattern
-- Tool calling integration
-- Agent-to-agent handoff protocols
-- Confidence scoring per agent
-- Parallel agent execution where applicable
+**Status: Complete**
+
+**Implemented:**
+- LangGraph `StateGraph` with `AgentState` TypedDict shared across all nodes
+- Router node — LLM-based intent classification (billing / technical / account / general / escalation) with confidence scoring
+- 5 specialist agent nodes built via a factory function (`_make_specialist_node`)
+- Conditional edges: router → specialist based on intent; all specialists → END
+- `get_compiled_graph()` cached with `@lru_cache` for process-lifetime reuse
+- `AgentOrchestrationService` — orchestrates RAG prefetch + graph invocation + response extraction
+- `ChatOpenAI` used for all LLM calls; `AsyncOpenAI` for embeddings
+- SSE streaming via `astream_events(version="v2")`
+- `AgentResponse` dataclass carries: content, intent, active_agent, confidence, rag_sources, should_escalate, escalation_reason, latency_ms
+- `ChatResponse` schema enriched with agent metadata fields
 
 ### Phase 4: Memory + Session Handling
-**Objectives:**
-- Redis-backed session management
-- Conversation history with sliding window
-- Long-term memory with summarization
-- Customer profile context injection
-- Cross-session memory retrieval
-- Memory-aware agent routing
+**Status: Complete**
+
+**Implemented:**
+- `ConversationMemoryService` — sliding-window context with LLM-powered rolling summarization
+  - Configurable via settings: `MEMORY_WINDOW_SIZE` (default 6), `MEMORY_SUMMARIZE_THRESHOLD` (10), `MEMORY_SUMMARIZE_STEP` (4)
+  - Short conversations (≤ threshold): all messages passed verbatim
+  - Long conversations: last N messages verbatim + LLM summary of older turns
+  - Summary stored on `conversation.summary`; re-generated every `SUMMARIZE_STEP` new messages
+  - Summarization watermark tracked in `conversation.metadata_["summarized_through"]`
+- `conversation_summary` field added to `AgentState` — injected into router prompt and all specialist system prompts
+- Conversation status lifecycle: `active → escalated` auto-transition when `should_escalate=True`
+- Manual status management via `PATCH /api/v1/chat/{id}/status` (active / resolved / escalated / closed)
+- `update_summary()` + `update_status()` added to both `InMemoryConversationRepository` and `ConversationRepository`
+- New endpoints:
+  - `GET /api/v1/chat/{id}/history` — full chronological message list + status
+  - `GET /api/v1/chat/{id}/summary` — LLM memory summary + turn count
+  - `PATCH /api/v1/chat/{id}/status` — manual lifecycle transition
 
 ### Phase 5: Voice AI Integration
 **Objectives:**
@@ -203,26 +218,18 @@ ConversalQ/
 │   │   │
 │   │   ├── services/               # Service layer
 │   │   │   ├── __init__.py
-│   │   │   ├── chat_service.py
-│   │   │   ├── voice_service.py
-│   │   │   ├── knowledge_service.py
-│   │   │   ├── analytics_service.py
-│   │   │   └── llm_service.py      # LLM abstraction
+│   │   │   ├── chat_service.py      # Phase 1-4: chat orchestration, memory, status
+│   │   │   ├── memory_service.py    # Phase 4: sliding-window + LLM summarization
+│   │   │   ├── knowledge_service.py # Phase 2: RAG document management
+│   │   │   └── llm_service.py      # Phase 1: LLM abstraction (legacy)
 │   │   │
-│   │   ├── agents/                 # AI Agent definitions
+│   │   ├── agents/                 # AI Agent definitions (Phase 3)
 │   │   │   ├── __init__.py
-│   │   │   ├── orchestrator.py     # LangGraph orchestrator
-│   │   │   ├── base_agent.py       # Base agent class
-│   │   │   ├── intent_agent.py
-│   │   │   ├── verification_agent.py
-│   │   │   ├── knowledge_agent.py
-│   │   │   ├── billing_agent.py
-│   │   │   ├── tech_support_agent.py
-│   │   │   ├── sentiment_agent.py
-│   │   │   ├── escalation_agent.py
-│   │   │   ├── compliance_agent.py
-│   │   │   ├── summarizer_agent.py
-│   │   │   └── recommendation_agent.py
+│   │   │   ├── graph.py            # LangGraph StateGraph compilation
+│   │   │   ├── state.py            # AgentState TypedDict
+│   │   │   ├── router.py           # Intent classification node
+│   │   │   ├── specialists.py      # 5 specialist agent nodes
+│   │   │   └── orchestration.py    # AgentOrchestrationService
 │   │   │
 │   │   ├── models/                 # Database models (SQLAlchemy)
 │   │   │   ├── __init__.py
@@ -412,7 +419,26 @@ CREATE TABLE audit_logs (
 - "I implemented async-first patterns with FastAPI and SQLAlchemy for high concurrency"
 - "I used SSE streaming for real-time chat responses to reduce perceived latency"
 - "I containerized from day one with Docker Compose for reproducible environments"
-- "I implemented structured logging with correlation IDs for request tracing"
+- "I implemented structured logging with structlog and correlation IDs for request tracing"
+
+### Phase 2
+- "I built a full RAG pipeline: PDF/DOCX/TXT ingestion, token-accurate chunking with tiktoken, OpenAI embeddings with SHA-256 in-process cache, and ChromaDB vector store"
+- "I used chromadb-client (HTTP-only) to avoid native C++ build-tool dependencies in the dev environment"
+- "Citation-aware retrieval formats source references directly into agent context blocks"
+- "The knowledge base API is fully CRUD: ingest, search, list, delete, reset"
+
+### Phase 3
+- "I replaced the monolithic LLM call with a LangGraph state machine: router node classifies intent, conditional edges route to one of 5 specialist agents"
+- "The router uses LLM-based confidence scoring — below 0.45 it auto-escalates rather than guessing"
+- "All agents share a single AgentState TypedDict; the add_messages reducer handles message history merging"
+- "RAG context is prefetched before graph execution so every specialist sees the same retrieved chunks without redundant embedding calls"
+- "The compiled graph is cached with @lru_cache so LangGraph compilation cost is paid once at startup"
+
+### Phase 4
+- "I implemented a sliding-window memory system: the last 6 messages are passed verbatim; older turns are compressed into a rolling LLM-generated summary stored on the conversation record"
+- "Summarization is lazy and incremental — it only re-runs when the old window has grown by 4+ messages, keeping token costs low"
+- "The summary is injected into both the router (for accurate re-routing in long sessions) and specialist agents (for conversational continuity)"
+- "Conversation status transitions automatically — active → escalated when the escalation agent fires; agents or operators can also manually resolve/close via PATCH endpoint"
 
 ---
 

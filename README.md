@@ -20,11 +20,8 @@ cd backend
 python -m venv .venv
 .venv\Scripts\activate  # Windows
 pip install -r requirements.txt
-# Start server (Windows — uses venv automatically)
-powershell -ExecutionPolicy RemoteSigned -File start_server.ps1
-Or,
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 (In Powershell)
-Or, 
+
+# Start server (Windows — uses the backend venv)
 C:\GitProjects\ConversalQ\backend\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 --app-dir C:\GitProjects\ConversalQ\backend
 ```
 
@@ -34,27 +31,74 @@ Once running, visit:
 - Swagger UI: http://localhost:8000/docs
 - Health Check: http://localhost:8000/api/v1/health
 
+## API Endpoints
+
+### Chat
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/api/v1/chat` | Send a message, receive a complete AI response |
+| POST | `/api/v1/chat/stream` | Send a message, receive a streaming SSE response |
+| GET | `/api/v1/chat/{id}/history` | Retrieve full message history for a conversation |
+| GET | `/api/v1/chat/{id}/summary` | Retrieve the LLM-generated memory summary |
+| PATCH | `/api/v1/chat/{id}/status` | Manually update conversation status |
+
+### Knowledge Base
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/api/v1/knowledge/ingest` | Ingest a document into the vector store |
+| POST | `/api/v1/knowledge/search` | Semantic search the knowledge base |
+| GET | `/api/v1/knowledge/stats` | Collection statistics |
+| GET | `/api/v1/knowledge/documents` | List ingested documents |
+| DELETE | `/api/v1/knowledge/documents/{filename}` | Delete a document |
+
+### Agents
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/v1/agents` | List registered agents and their capabilities |
+| GET | `/api/v1/agents/graph` | Retrieve the agent graph topology |
+
 ## Sample API Requests
 
+> **PowerShell note:** Use single quotes for the `-d` body — no backslash escaping needed.
+
 ### Chat Completion
-```bash
-curl -X POST http://localhost:8000/api/v1/chat \
-  -H "Content-Type: application/json" \
-  -d '{
-    "message": "I need help with my billing issue",
-    "conversation_id": null
-  }'
+```powershell
+curl.exe -X POST http://localhost:8000/api/v1/chat `
+  -H "Content-Type: application/json" `
+  -d '{"message": "I need help with my billing issue"}'
+```
+
+### Continue a Conversation
+```powershell
+# Use the conversation_id returned from the first call
+curl.exe -X POST http://localhost:8000/api/v1/chat `
+  -H "Content-Type: application/json" `
+  -d '{"message": "Can I get a refund?", "conversation_id": "<id>"}'
 ```
 
 ### Streaming Chat
-```bash
-curl -X POST http://localhost:8000/api/v1/chat/stream \
-  -H "Content-Type: application/json" \
-  -H "Accept: text/event-stream" \
-  -d '{
-    "message": "What is your refund policy?",
-    "conversation_id": null
-  }'
+```powershell
+curl.exe -X POST http://localhost:8000/api/v1/chat/stream `
+  -H "Content-Type: application/json" `
+  -H "Accept: text/event-stream" `
+  -d '{"message": "What is your refund policy?"}'
+```
+
+### Conversation History
+```powershell
+curl.exe http://localhost:8000/api/v1/chat/<conversation_id>/history
+```
+
+### Conversation Summary
+```powershell
+curl.exe http://localhost:8000/api/v1/chat/<conversation_id>/summary
+```
+
+### Resolve a Conversation
+```powershell
+curl.exe -X PATCH http://localhost:8000/api/v1/chat/<conversation_id>/status `
+  -H "Content-Type: application/json" `
+  -d '{"status": "resolved"}'
 ```
 
 ## Architecture
@@ -65,9 +109,13 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for full system design.
 
 | Layer | Technology |
 |-------|-----------|
-| Backend | Python, FastAPI, SQLAlchemy |
-| AI Orchestration | LangGraph, OpenAI |
+| Backend | Python 3.12, FastAPI 0.115, SQLAlchemy 2.0 |
+| AI Orchestration | LangGraph 1.2, LangChain OpenAI 1.2 |
+| LLM | OpenAI GPT-4o |
+| Vector Store | ChromaDB (HTTP client) |
 | Database | PostgreSQL, Redis, ChromaDB |
+| Embeddings | OpenAI text-embedding-3-small |
+| Logging | structlog |
 | Frontend | React, TailwindCSS, ShadCN |
 | Voice | Twilio, Deepgram, ElevenLabs |
 | Observability | OpenTelemetry, Prometheus, Grafana |
@@ -76,9 +124,9 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for full system design.
 ## Development Phases
 
 - [x] Phase 1: Foundation — FastAPI + OpenAI + Streaming
-- [x] Phase 2: RAG + Vector Database
+- [x] Phase 2: RAG + Vector Database (ChromaDB)
 - [x] Phase 3: Multi-Agent Orchestration (LangGraph)
-- [ ] Phase 4: Memory + Session Handling
+- [x] Phase 4: Memory + Session Handling
 - [ ] Phase 5: Voice AI Integration
 - [ ] Phase 6: Observability + Analytics
 - [ ] Phase 7: Enterprise Security + RBAC
