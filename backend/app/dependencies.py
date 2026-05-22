@@ -22,6 +22,7 @@ from app.repositories.message_repo import MessageRepository
 from app.services.chat_service import ChatService
 from app.services.llm_service import LLMService
 from app.services.knowledge_service import KnowledgeService
+from app.services.memory_service import ConversationMemoryService
 
 
 async def get_db(
@@ -73,8 +74,21 @@ def get_knowledge_service() -> Optional[KnowledgeService]:
     )
 
 
+def get_memory_service() -> ConversationMemoryService:
+    """Provide the ConversationMemoryService as a process-level singleton."""
+    return _get_memory_service_singleton()
+
+
+from functools import lru_cache as _lru_cache
+
+@_lru_cache(maxsize=1)
+def _get_memory_service_singleton() -> ConversationMemoryService:
+    return ConversationMemoryService()
+
+
 def get_chat_service(
     knowledge_service: Optional[KnowledgeService] = Depends(get_knowledge_service),
+    memory_service: ConversationMemoryService = Depends(get_memory_service),
 ) -> ChatService:
     """Provide the chat service — uses in-memory repos, agent graph for LLM."""
     conversation_repo = InMemoryConversationRepository()
@@ -84,4 +98,5 @@ def get_chat_service(
         conversation_repo=conversation_repo,
         message_repo=message_repo,
         knowledge_service=knowledge_service,
+        memory_service=memory_service,
     )

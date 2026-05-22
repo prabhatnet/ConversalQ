@@ -128,6 +128,15 @@ def _make_specialist_node(agent_name: str, system_prompt: str):
 
         # Build system prompt — append RAG context if available
         full_system = system_prompt
+        conversation_summary = state.get("conversation_summary")
+        if conversation_summary:
+            full_system += (
+                "\n\n--- Conversation History Summary ---\n"
+                + conversation_summary
+                + "\n--- End of Summary ---\n"
+                "The above is a summary of the prior conversation turns. "
+                "Use it to maintain continuity without repeating resolved points."
+            )
         rag_context = state.get("rag_context")
         if rag_context:
             full_system += (

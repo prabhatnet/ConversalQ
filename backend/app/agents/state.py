@@ -67,3 +67,4 @@ class AgentState(TypedDict):
     should_escalate: bool
     escalation_reason: Optional[str]
     handoff_count: int
+    conversation_summary: Optional[str]  # Phase 4 — LLM-generated summary of prior turns

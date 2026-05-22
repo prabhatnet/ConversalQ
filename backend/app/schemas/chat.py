@@ -55,3 +55,45 @@ class ChatResponse(BaseModel):
     confidence: Optional[float] = Field(default=None, description="Router confidence score.")
     rag_sources: List[str] = Field(default_factory=list, description="Source documents used for RAG context.")
     should_escalate: bool = Field(default=False, description="True if the conversation should be escalated to a human agent.")
+
+
+# ---------------------------------------------------------------------------
+# Phase 4 — Memory & Session schemas
+# ---------------------------------------------------------------------------
+
+class MessageItem(BaseModel):
+    """A single message in a conversation history response."""
+
+    id: UUID
+    role: str = Field(description="Message role: user or assistant.")
+    content: str
+    agent_name: Optional[str] = Field(default=None)
+    created_at: datetime
+
+
+class ConversationHistoryResponse(BaseModel):
+    """Full message history for a conversation."""
+
+    conversation_id: UUID
+    status: str = Field(description="Conversation lifecycle status: active, resolved, escalated, closed.")
+    total_messages: int
+    messages: List[MessageItem]
+
+
+class ConversationSummaryResponse(BaseModel):
+    """LLM-generated memory summary for a conversation."""
+
+    conversation_id: UUID
+    status: str
+    total_turns: int
+    has_summary: bool
+    summary: Optional[str] = Field(default=None, description="Rolling LLM summary of prior turns (None for short conversations).")
+
+
+class ConversationStatusUpdate(BaseModel):
+    """Request body for manually updating conversation status."""
+
+    status: str = Field(
+        description="New lifecycle status: active, resolved, escalated, or closed.",
+        examples=["resolved"],
+    )

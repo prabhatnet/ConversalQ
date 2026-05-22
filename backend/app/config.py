@@ -74,6 +74,11 @@ class Settings(BaseSettings):
     # --- Embeddings (Phase 2) ---
     embedding_model: str = "text-embedding-3-small"
 
+    # --- Memory / Session (Phase 4) ---
+    memory_window_size: int = 6        # recent messages kept verbatim for agent context
+    memory_summarize_threshold: int = 10  # total messages before triggering summarization
+    memory_summarize_step: int = 4     # re-summarize every N new messages beyond threshold
+
     @property
     def database_url(self) -> str:
         """Construct async PostgreSQL connection URL."""

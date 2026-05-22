@@ -82,6 +82,32 @@ class InMemoryConversationRepository:
         logger.debug("in_memory_conversation_created", conversation_id=str(conv.id))
         return conv
 
+    async def update_summary(
+        self,
+        conversation_id: UUID,
+        summary: str,
+        summarized_through: int = 0,
+    ) -> Optional[InMemoryConversation]:
+        """Persist the LLM-generated summary and the message count it covers."""
+        conv = _conversations.get(conversation_id)
+        if conv:
+            conv.summary = summary
+            conv.metadata_["summarized_through"] = summarized_through
+            conv.updated_at = datetime.now(timezone.utc)
+        return conv
+
+    async def update_status(
+        self,
+        conversation_id: UUID,
+        status: str,
+    ) -> Optional[InMemoryConversation]:
+        """Update the conversation lifecycle status."""
+        conv = _conversations.get(conversation_id)
+        if conv:
+            conv.status = status
+            conv.updated_at = datetime.now(timezone.utc)
+        return conv
+
 
 class InMemoryMessageRepository:
     """In-memory message repository — same interface as MessageRepository."""

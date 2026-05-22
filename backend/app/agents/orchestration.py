@@ -66,6 +66,7 @@ class AgentOrchestrationService:
         self,
         user_message: str,
         history: List[dict],
+        conversation_summary: Optional[str] = None,
     ) -> AgentResponse:
         """
         Run the agent graph for a single user turn.
@@ -77,6 +78,9 @@ class AgentOrchestrationService:
         history:
             Prior conversation turns as ``[{"role": "user"|"assistant", "content": "..."}]``.
             Does NOT include the current user message.
+        conversation_summary:
+            Optional LLM-generated summary of turns older than the active window.
+            Injected into router + specialist system prompts for long-running sessions.
         """
         start = time.perf_counter()
 
@@ -108,6 +112,7 @@ class AgentOrchestrationService:
             "should_escalate": False,
             "escalation_reason": None,
             "handoff_count": 0,
+            "conversation_summary": conversation_summary,
         }
 
         # Run graph
@@ -141,6 +146,7 @@ class AgentOrchestrationService:
         self,
         user_message: str,
         history: List[dict],
+        conversation_summary: Optional[str] = None,
     ) -> AsyncIterator[str]:
         """
         Stream response tokens using LangGraph ``astream_events``.
@@ -172,6 +178,7 @@ class AgentOrchestrationService:
             "should_escalate": False,
             "escalation_reason": None,
             "handoff_count": 0,
+            "conversation_summary": conversation_summary,
         }
 
         # Stream events — yield tokens from on_llm_new_token events

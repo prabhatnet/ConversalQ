@@ -59,9 +59,19 @@ async def router_node(state: AgentState) -> dict:
     # Extract the latest human message for classification
     latest_text = _get_latest_human_text(state["messages"])
 
+    # Prepend conversation summary when available so routing reflects prior context
+    conversation_summary: str | None = state.get("conversation_summary")
+    if conversation_summary:
+        routing_context = (
+            f"PRIOR CONVERSATION SUMMARY:\n{conversation_summary}\n\n"
+            f"LATEST USER MESSAGE:\n{latest_text}"
+        )
+    else:
+        routing_context = latest_text
+
     messages = [
         SystemMessage(content=_ROUTER_SYSTEM_PROMPT),
-        HumanMessage(content=latest_text),
+        HumanMessage(content=routing_context),
     ]
 
     try:
