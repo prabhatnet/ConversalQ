@@ -57,6 +57,16 @@ Once running, visit:
 | GET | `/api/v1/agents` | List registered agents and their capabilities |
 | GET | `/api/v1/agents/graph` | Retrieve the agent graph topology |
 
+### Voice (Phase 5)
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/api/v1/voice/inbound` | Twilio inbound call webhook — returns TwiML greeting |
+| POST | `/api/v1/voice/gather` | Twilio Gather webhook — processes speech, returns TwiML reply |
+| POST | `/api/v1/voice/status` | Twilio status callback — syncs call lifecycle |
+| GET | `/api/v1/voice/sessions` | List active call sessions (`?active_only=false` for all) |
+| GET | `/api/v1/voice/sessions/{call_sid}` | Get single call session by CallSid |
+| WS | `/api/v1/voice/stream/{call_sid}` | Twilio Media Stream — live Deepgram STT transcription |
+
 ## Sample API Requests
 
 > **PowerShell note:** Use single quotes for the `-d` body — no backslash escaping needed.
@@ -101,6 +111,32 @@ curl.exe -X PATCH http://localhost:8000/api/v1/chat/<conversation_id>/status `
   -d '{"status": "resolved"}'
 ```
 
+### Simulate Twilio Inbound Call
+```powershell
+# Simulates the webhook Twilio sends when a call arrives
+curl.exe -X POST http://localhost:8000/api/v1/voice/inbound `
+  -H "Content-Type: application/x-www-form-urlencoded" `
+  -d "CallSid=CA1234567890abcdef&From=%2B15551112222&To=%2B15559998888&CallStatus=ringing"
+```
+
+### Simulate Twilio Gather (Caller Speaks)
+```powershell
+# Simulates Twilio posting back the transcribed speech
+curl.exe -X POST http://localhost:8000/api/v1/voice/gather `
+  -H "Content-Type: application/x-www-form-urlencoded" `
+  -d "CallSid=CA1234567890abcdef&SpeechResult=I+have+a+billing+issue&Confidence=0.92"
+```
+
+### List Active Voice Calls
+```powershell
+curl.exe http://localhost:8000/api/v1/voice/sessions
+```
+
+### Get Call Session Details
+```powershell
+curl.exe http://localhost:8000/api/v1/voice/sessions/CA1234567890abcdef
+```
+
 ## Architecture
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for full system design.
@@ -117,7 +153,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for full system design.
 | Embeddings | OpenAI text-embedding-3-small |
 | Logging | structlog |
 | Frontend | React, TailwindCSS, ShadCN |
-| Voice | Twilio, Deepgram, ElevenLabs |
+| Voice | Twilio 9.4 (TwiML + webhook validation), Deepgram SDK 3.7 (live STT), OpenAI TTS |
 | Observability | OpenTelemetry, Prometheus, Grafana |
 | Infrastructure | Docker, Kubernetes, GitHub Actions |
 
@@ -127,7 +163,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for full system design.
 - [x] Phase 2: RAG + Vector Database (ChromaDB)
 - [x] Phase 3: Multi-Agent Orchestration (LangGraph)
 - [x] Phase 4: Memory + Session Handling
-- [ ] Phase 5: Voice AI Integration
+- [x] Phase 5: Voice AI Integration (Twilio + Deepgram + OpenAI TTS)
 - [ ] Phase 6: Observability + Analytics
 - [ ] Phase 7: Enterprise Security + RBAC
 - [ ] Phase 8: Cloud Deployment + Scaling

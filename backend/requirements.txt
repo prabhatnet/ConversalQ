@@ -65,3 +65,9 @@ langchain-core==1.4.0
 # (No additional packages — builds on Phase 3 LangGraph / LangChain stack)
 # ConversationMemoryService uses: langchain-openai, langchain-core, structlog
 # =============================================================================
+
+# =============================================================================
+# Phase 5: Voice AI Integration
+# =============================================================================
+twilio==9.4.3           # TwiML generation + X-Twilio-Signature webhook validation
+deepgram-sdk==3.7.7     # Real-time STT for WebSocket media stream path

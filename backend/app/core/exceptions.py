@@ -46,3 +46,20 @@ class ValidationError(ConversalQError):
 
     def __init__(self, message: str = "Validation error"):
         super().__init__(message=message, code="VALIDATION_ERROR")
+
+
+class VoiceServiceError(ConversalQError):
+    """Raised when the voice pipeline encounters an unrecoverable error."""
+
+    def __init__(self, message: str = "Voice service error"):
+        super().__init__(message=message, code="VOICE_SERVICE_ERROR")
+
+
+class CallSessionNotFoundError(ConversalQError):
+    """Raised when a Twilio CallSid has no matching session."""
+
+    def __init__(self, call_sid: str):
+        super().__init__(
+            message=f"Call session {call_sid} not found",
+            code="CALL_SESSION_NOT_FOUND",
+        )

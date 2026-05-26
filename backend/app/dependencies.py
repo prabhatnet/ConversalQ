@@ -23,6 +23,7 @@ from app.services.chat_service import ChatService
 from app.services.llm_service import LLMService
 from app.services.knowledge_service import KnowledgeService
 from app.services.memory_service import ConversationMemoryService
+from app.services.voice_service import VoiceService
 
 
 async def get_db(
@@ -100,3 +101,10 @@ def get_chat_service(
         knowledge_service=knowledge_service,
         memory_service=memory_service,
     )
+
+
+def get_voice_service(
+    chat_service: ChatService = Depends(get_chat_service),
+) -> VoiceService:
+    """Provide the VoiceService — bridges Twilio webhooks and the agent graph."""
+    return VoiceService(chat_service=chat_service)

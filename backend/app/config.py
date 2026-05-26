@@ -75,9 +75,28 @@ class Settings(BaseSettings):
     embedding_model: str = "text-embedding-3-small"
 
     # --- Memory / Session (Phase 4) ---
-    memory_window_size: int = 6        # recent messages kept verbatim for agent context
-    memory_summarize_threshold: int = 10  # total messages before triggering summarization
-    memory_summarize_step: int = 4     # re-summarize every N new messages beyond threshold
+    memory_window_size: int = 6
+    memory_summarize_threshold: int = 10
+    memory_summarize_step: int = 4
+
+    # --- Twilio (Phase 5) ---
+    twilio_account_sid: str = Field(default="", description="Twilio Account SID")
+    twilio_auth_token: str = Field(default="", description="Twilio Auth Token")
+    twilio_phone_number: str = Field(default="", description="Outbound caller ID (E.164 format)")
+    twilio_webhook_base_url: str = Field(default="http://localhost:8000", description="Base URL for Twilio webhooks (use ngrok for local dev)")
+    twilio_validate_webhooks: bool = Field(default=False, description="Validate X-Twilio-Signature (enable in production)")
+    twilio_escalation_number: str = Field(default="", description="Phone number to dial for human agent escalation")
+
+    # --- Deepgram (Phase 5) ---
+    deepgram_api_key: str = Field(default="", description="Deepgram API key for real-time STT via WebSocket media streams")
+
+    # --- Text-to-Speech (Phase 5) ---
+    tts_enabled: bool = Field(default=False, description="Use OpenAI TTS instead of Twilio built-in <Say> (requires extra API calls)")
+    tts_model: str = Field(default="tts-1", description="OpenAI TTS model: tts-1 (fast) or tts-1-hd (quality)")
+    tts_voice: str = Field(default="alloy", description="OpenAI TTS voice: alloy, echo, fable, onyx, nova, shimmer")
+    voice_language: str = Field(default="en-US", description="Speech recognition language for Twilio Gather")
+    voice_greeting: str = Field(default="Welcome to ConversalQ. How can I help you today?")
+    voice_timeout: int = Field(default=5, description="Seconds to wait for caller speech to begin")
 
     @property
     def database_url(self) -> str:
