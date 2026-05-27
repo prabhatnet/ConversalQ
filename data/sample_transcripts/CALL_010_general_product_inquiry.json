@@ -1,0 +1,29 @@
+{
+  "call_id": "CALL_010",
+  "timestamp": "2026-05-10T11:00:00Z",
+  "duration_seconds": 210,
+  "channel": "chat",
+  "caller_number": "+15552341010",
+  "agent_number": "+18005550001",
+  "category": "general",
+  "transcript": [
+    {"speaker": "agent",    "text": "Hi! Welcome to ConversalQ. What can I help you with?", "timestamp_offset": 0},
+    {"speaker": "customer", "text": "Hi, I'm evaluating your product for our startup. Can you tell me what the AI call center assistant does exactly?", "timestamp_offset": 4},
+    {"speaker": "agent",    "text": "Of course! ConversalQ is an AI-powered call center platform. It uses a multi-agent system to automatically route customer enquiries to the right specialist — billing, technical support, account management, or general support. It handles both voice calls and chat, and learns from your knowledge base to give accurate, grounded answers.", "timestamp_offset": 10},
+    {"speaker": "customer", "text": "Can it handle voice calls too, not just chat?", "timestamp_offset": 28},
+    {"speaker": "agent",    "text": "Yes! We have full voice integration via Twilio. Customers can call your number, and our AI handles the conversation end-to-end with speech recognition. If needed, it escalates to a human agent seamlessly.", "timestamp_offset": 33},
+    {"speaker": "customer", "text": "What about language support? Our customers are in the US and Spain.", "timestamp_offset": 46},
+    {"speaker": "agent",    "text": "Currently English is fully supported with high accuracy. Spanish support is in beta — our AI agents can understand and respond in Spanish, though we recommend testing with your specific use cases. Full Spanish GA is planned for Q3.", "timestamp_offset": 51},
+    {"speaker": "customer", "text": "That's good to know. Is there a free trial?", "timestamp_offset": 67},
+    {"speaker": "agent",    "text": "Yes! We offer a 14-day free trial with full Pro features — no credit card required. You can sign up at conversalq.com/trial. Our onboarding team will also reach out to help you get set up.", "timestamp_offset": 72},
+    {"speaker": "customer", "text": "Great, I'll try it out. Thank you!", "timestamp_offset": 84},
+    {"speaker": "agent",    "text": "You're welcome! Feel free to reach out if you have questions during your trial.", "timestamp_offset": 88}
+  ],
+  "metadata": {
+    "resolved": true,
+    "sentiment": "positive",
+    "escalated": false,
+    "issue_type": "product_inquiry",
+    "trial_interested": true
+  }
+}

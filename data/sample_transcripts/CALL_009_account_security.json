@@ -1,0 +1,35 @@
+{
+  "call_id": "CALL_009",
+  "timestamp": "2026-05-09T17:30:00Z",
+  "duration_seconds": 465,
+  "channel": "voice",
+  "caller_number": "+15552341009",
+  "agent_number": "+18005550001",
+  "category": "account",
+  "transcript": [
+    {"speaker": "agent",    "text": "ConversalQ security team, how can I help you?", "timestamp_offset": 0},
+    {"speaker": "customer", "text": "I just got an email saying someone logged into my account from Russia. I didn't do that. I think I've been hacked.", "timestamp_offset": 5},
+    {"speaker": "agent",    "text": "I understand your concern and I'm treating this as a priority. For your security, I need to verify your identity before we proceed. Can you confirm the last 4 digits of the payment card on file?", "timestamp_offset": 14},
+    {"speaker": "customer", "text": "Yes, it's 5544.", "timestamp_offset": 25},
+    {"speaker": "agent",    "text": "Thank you. I can confirm a login from an IP address in Moscow at 2:14 AM your time today. I'm immediately locking that session and any other active sessions except the one you're currently on.", "timestamp_offset": 30},
+    {"speaker": "customer", "text": "Good. Should I change my password?", "timestamp_offset": 44},
+    {"speaker": "agent",    "text": "Yes, please do that right now. I'll stay on the line. Go to account settings and change it to something strong — at least 12 characters with a mix of letters, numbers, and symbols.", "timestamp_offset": 49},
+    {"speaker": "customer", "text": "OK... done. Changed.", "timestamp_offset": 72},
+    {"speaker": "agent",    "text": "Great. I strongly recommend enabling two-factor authentication right now as well. Go to Settings > Security > Two-Factor Authentication. This will prevent access even if someone has your password.", "timestamp_offset": 77},
+    {"speaker": "customer", "text": "Setting it up now... OK it's enabled.", "timestamp_offset": 95},
+    {"speaker": "agent",    "text": "Perfect. I've flagged the unauthorized access in our security logs and sent a full report to your registered email. Please review your recent conversation history to check if anything was accessed inappropriately.", "timestamp_offset": 102},
+    {"speaker": "customer", "text": "I will. Is there anything else I should do?", "timestamp_offset": 116},
+    {"speaker": "agent",    "text": "If you used the same password on other services, change those too. Also consider running an antivirus scan on your devices. Your ConversalQ account is secured now.", "timestamp_offset": 121},
+    {"speaker": "customer", "text": "Thank you, I really appreciate the quick response.", "timestamp_offset": 133},
+    {"speaker": "agent",    "text": "Of course. Your security is our priority. Stay safe!", "timestamp_offset": 138}
+  ],
+  "metadata": {
+    "resolved": true,
+    "sentiment": "neutral",
+    "escalated": false,
+    "issue_type": "unauthorized_access",
+    "sessions_terminated": true,
+    "mfa_enabled": true,
+    "security_report_sent": true
+  }
+}

@@ -19,6 +19,9 @@ from app.schemas.chat import (
     ConversationStatusUpdate,
     ConversationSummaryResponse,
     MessageItem,
+    TranscriptReplayRequest,
+    TranscriptReplayResponse,
+    ReplayTurnResult,
 )
 from app.services.chat_service import ChatService
 from app.core.exceptions import ConversationNotFoundError
@@ -182,4 +185,54 @@ async def update_conversation_status(
         )
 
     return {"conversation_id": str(conversation_id), "status": body.status}
+
+
+@router.post("/replay", response_model=TranscriptReplayResponse, tags=["Transcript Replay"])
+async def replay_transcript(
+    request: TranscriptReplayRequest,
+    chat_service: ChatService = Depends(get_chat_service),
+) -> TranscriptReplayResponse:
+    """
+    Replay a call transcript through the multi-agent graph.
+
+    Submit a full transcript (from `data/sample_transcripts/`) and the endpoint
+    will process every **customer** turn sequentially, sharing a single
+    conversation context throughout.  Agent turns in the transcript are skipped.
+
+    Returns one `ReplayTurnResult` per customer turn containing the AI response,
+    detected intent, routing agent, and confidence score.
+    """
+    conversation_id = None
+    results: list[ReplayTurnResult] = []
+
+    for idx, turn in enumerate(request.transcript):
+        if turn.speaker != "customer":
+            continue
+
+        response = await chat_service.process_message(
+            message=turn.text,
+            conversation_id=conversation_id,
+        )
+        conversation_id = response.conversation_id
+
+        results.append(
+            ReplayTurnResult(
+                turn_index=idx,
+                customer_text=turn.text,
+                agent_response=response.response,
+                intent=response.intent,
+                agent_name=response.agent_name,
+                confidence=response.confidence,
+                should_escalate=response.should_escalate,
+                latency_ms=response.latency_ms,
+            )
+        )
+
+    return TranscriptReplayResponse(
+        call_id=request.call_id,
+        conversation_id=conversation_id,
+        total_turns=len(request.transcript),
+        customer_turns_replayed=len(results),
+        turns=results,
+    )
 

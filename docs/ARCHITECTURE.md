@@ -132,14 +132,20 @@ ConversalQ is an enterprise-grade AI Call Center Assistant that orchestrates mul
   - `PATCH /api/v1/chat/{id}/status` — manual lifecycle transition
 
 ### Phase 5: Voice AI Integration
-**Objectives:**
-- Twilio Voice webhook handlers
-- Real-time speech-to-text (Deepgram)
-- Text-to-speech responses (ElevenLabs/OpenAI TTS)
-- Call session lifecycle management
-- Voice sentiment analysis
-- Streaming audio pipeline
-- DTMF handling
+**What was built:**
+- `POST /api/v1/voice/inbound` — Twilio webhook that creates a call session and returns a TwiML `<Gather>` greeting
+- `POST /api/v1/voice/gather` — receives `SpeechResult` from Twilio (Twilio handles STT), routes through the full multi-agent graph, returns TwiML with the spoken reply
+- `POST /api/v1/voice/status` — syncs Twilio call lifecycle events (completed, failed, etc.) to the call session and backing conversation
+- `GET /api/v1/voice/sessions` — real-time monitoring of active calls with transcript logs
+- `WS /api/v1/voice/stream/{call_sid}` — Twilio Media Stream WebSocket; pipes mulaw audio to Deepgram live STT for real-time transcript analytics
+- `voice/call_session.py` — module-level `_sessions: Dict[str, CallSession]` store (same singleton pattern as in-memory repos)
+- `voice/twiml_handler.py` — `TwiMLBuilder` generates welcome, agent reply, escalation, hangup, and error TwiML; `clean_for_speech()` strips markdown before text hits `<Say>`
+- `voice/tts.py` — `TTSService` wraps OpenAI TTS; opt-in via `TTS_ENABLED=true` (default is Twilio's free `<Say voice="alice">`)
+- `voice/stt.py` — `STTService` wraps Deepgram for pre-recorded and live transcription; gracefully degrades when `DEEPGRAM_API_KEY` is unset
+- `VoiceService` re-uses `ChatService.process_message()` — every voice call is backed by a full ConversalQ conversation, so sliding-window memory, LLM summarization, and history/summary endpoints all work on voice calls too
+- Webhook signature validation (HMAC-SHA1 via `twilio.request_validator`) is configurable: off for local dev, on for production via `TWILIO_VALIDATE_WEBHOOKS=true`
+- New `.env` settings: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`, `TWILIO_WEBHOOK_BASE_URL`, `TWILIO_ESCALATION_NUMBER`, `DEEPGRAM_API_KEY`, `TTS_ENABLED`, `TTS_MODEL`, `TTS_VOICE`, `VOICE_LANGUAGE`, `VOICE_GREETING`, `VOICE_TIMEOUT`
+- New packages: `twilio==9.4.3`, `deepgram-sdk==3.7.7`
 
 ### Phase 6: Observability + Analytics
 **Objectives:**
@@ -221,6 +227,7 @@ ConversalQ/
 │   │   │   ├── chat_service.py      # Phase 1-4: chat orchestration, memory, status
 │   │   │   ├── memory_service.py    # Phase 4: sliding-window + LLM summarization
 │   │   │   ├── knowledge_service.py # Phase 2: RAG document management
+│   │   │   ├── voice_service.py     # Phase 5: Twilio webhooks → agent graph → TwiML
 │   │   │   └── llm_service.py      # Phase 1: LLM abstraction (legacy)
 │   │   │
 │   │   ├── agents/                 # AI Agent definitions (Phase 3)
@@ -263,12 +270,12 @@ ConversalQ/
 │   │   │   ├── retriever.py
 │   │   │   └── vector_store.py
 │   │   │
-│   │   ├── voice/                  # Voice AI pipeline
+│   │   ├── voice/                  # Voice AI pipeline (Phase 5)
 │   │   │   ├── __init__.py
-│   │   │   ├── twilio_handler.py
-│   │   │   ├── stt.py              # Speech-to-text
-│   │   │   ├── tts.py              # Text-to-speech
-│   │   │   └── session.py
+│   │   │   ├── call_session.py     # Module-level CallSid → CallSession store
+│   │   │   ├── twiml_handler.py    # TwiMLBuilder + clean_for_speech()
+│   │   │   ├── stt.py              # Deepgram STT (pre-recorded + live stream)
+│   │   │   └── tts.py              # OpenAI TTS (opt-in upgrade over <Say>)
 │   │   │
 │   │   ├── observability/          # Monitoring & telemetry
 │   │   │   ├── __init__.py
@@ -439,6 +446,15 @@ CREATE TABLE audit_logs (
 - "Summarization is lazy and incremental — it only re-runs when the old window has grown by 4+ messages, keeping token costs low"
 - "The summary is injected into both the router (for accurate re-routing in long sessions) and specialist agents (for conversational continuity)"
 - "Conversation status transitions automatically — active → escalated when the escalation agent fires; agents or operators can also manually resolve/close via PATCH endpoint"
+
+### Phase 5
+- "I designed a two-path voice architecture: the primary Gather path uses Twilio's built-in STT (zero extra cost, just text in the webhook) and the secondary WebSocket path streams mulaw audio to Deepgram for real-time transcript analytics"
+- "Every voice call is backed by a full ConversalQ conversation — the same sliding-window memory, LLM summarization, and history/summary endpoints that work for chat also work for phone calls with no extra code"
+- "TwiML generation uses a builder pattern with a `clean_for_speech()` sanitizer that strips markdown before text hits `<Say>`, preventing Twilio from reading out asterisks and hash signs"
+- "OpenAI TTS is opt-in via `TTS_ENABLED=true` — by default I use Twilio's free `<Say voice='alice'>` to keep latency low and avoid extra API calls in dev"
+- "Webhook security uses HMAC-SHA1 signature validation via `twilio.request_validator`, toggled by `TWILIO_VALIDATE_WEBHOOKS` — off locally, on in production"
+- "The call session store uses the same module-level singleton dictionary pattern as the in-memory conversation repos, so sessions persist for the process lifetime without a Redis dependency"
+- "Escalation on voice mirrors the chat path — when `should_escalate=True` the service returns escalation TwiML that optionally dials a transfer number via `<Dial>`"
 
 ---
 

@@ -1,0 +1,29 @@
+{
+  "call_id": "CALL_001",
+  "timestamp": "2026-05-01T09:14:00Z",
+  "duration_seconds": 312,
+  "channel": "voice",
+  "caller_number": "+15552341001",
+  "agent_number": "+18005550001",
+  "category": "billing",
+  "transcript": [
+    {"speaker": "agent",    "text": "Thank you for calling ConversalQ support. My name is Alex. How can I help you today?", "timestamp_offset": 0},
+    {"speaker": "customer", "text": "Hi, I was charged twice for my subscription this month. I see two $49 charges on my credit card statement.", "timestamp_offset": 5},
+    {"speaker": "agent",    "text": "I'm sorry to hear that. Let me pull up your account. Can I get your registered email address?", "timestamp_offset": 12},
+    {"speaker": "customer", "text": "Sure, it's sarah.jones@example.com", "timestamp_offset": 18},
+    {"speaker": "agent",    "text": "Thank you, Sarah. I can see the duplicate charge from May 1st. It looks like our payment processor retried the transaction due to a brief network timeout. This was an error on our end.", "timestamp_offset": 24},
+    {"speaker": "customer", "text": "So I'll get a refund?", "timestamp_offset": 35},
+    {"speaker": "agent",    "text": "Absolutely. I'm initiating a full refund of $49 for the duplicate charge right now. You should see it back on your card within 3 to 5 business days.", "timestamp_offset": 39},
+    {"speaker": "customer", "text": "Great, thank you. That was fast.", "timestamp_offset": 48},
+    {"speaker": "agent",    "text": "You're welcome, Sarah. I've also added a note to your account. Is there anything else I can help you with today?", "timestamp_offset": 52},
+    {"speaker": "customer", "text": "No, that's all. Thanks!", "timestamp_offset": 59},
+    {"speaker": "agent",    "text": "Have a great day!", "timestamp_offset": 62}
+  ],
+  "metadata": {
+    "resolved": true,
+    "sentiment": "positive",
+    "escalated": false,
+    "refund_issued": true,
+    "refund_amount": 49.00
+  }
+}

@@ -97,3 +97,64 @@ class ConversationStatusUpdate(BaseModel):
         description="New lifecycle status: active, resolved, escalated, or closed.",
         examples=["resolved"],
     )
+
+
+# ---------------------------------------------------------------------------
+# Transcript Replay schemas
+# ---------------------------------------------------------------------------
+
+class TranscriptTurn(BaseModel):
+    """A single turn in a call transcript."""
+
+    speaker: str = Field(description="'agent' or 'customer'.")
+    text: str = Field(min_length=1, max_length=10000, description="Spoken or typed text for this turn.")
+    timestamp_offset: Optional[int] = Field(default=None, description="Seconds from call start.")
+
+
+class TranscriptReplayRequest(BaseModel):
+    """Submit a full call transcript for sequential replay through the agent graph."""
+
+    call_id: Optional[str] = Field(default=None, description="Identifier from the source transcript file (e.g. CALL_001).")
+    transcript: List[TranscriptTurn] = Field(
+        min_length=1,
+        description="Ordered list of turns. Only 'customer' turns are replayed; 'agent' turns are echoed back as-is.",
+    )
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "call_id": "CALL_001",
+                    "transcript": [
+                        {"speaker": "agent",    "text": "Hi, ConversalQ support. How can I help?", "timestamp_offset": 0},
+                        {"speaker": "customer", "text": "I was charged twice for my subscription this month.", "timestamp_offset": 5},
+                        {"speaker": "agent",    "text": "I'm sorry to hear that. Can you share the dates?", "timestamp_offset": 12},
+                        {"speaker": "customer", "text": "Both charges hit on May 3rd, $49.99 each.", "timestamp_offset": 18},
+                    ],
+                }
+            ]
+        }
+    }
+
+
+class ReplayTurnResult(BaseModel):
+    """Agent response for a single customer turn during replay."""
+
+    turn_index: int = Field(description="Zero-based index of this turn in the original transcript.")
+    customer_text: str = Field(description="The customer's message that was replayed.")
+    agent_response: str = Field(description="AI agent response text.")
+    intent: Optional[str] = Field(default=None)
+    agent_name: Optional[str] = Field(default=None)
+    confidence: Optional[float] = Field(default=None)
+    should_escalate: bool = False
+    latency_ms: int
+
+
+class TranscriptReplayResponse(BaseModel):
+    """Full replay result for a transcript."""
+
+    call_id: Optional[str] = None
+    conversation_id: UUID = Field(description="Shared conversation ID used for the entire replay.")
+    total_turns: int = Field(description="Total turns in the submitted transcript.")
+    customer_turns_replayed: int = Field(description="Number of customer turns processed.")
+    turns: List[ReplayTurnResult] = Field(description="Ordered results for each customer turn.")

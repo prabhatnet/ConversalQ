@@ -1,0 +1,34 @@
+{
+  "call_id": "CALL_004",
+  "timestamp": "2026-05-04T08:45:00Z",
+  "duration_seconds": 420,
+  "channel": "voice",
+  "caller_number": "+15552341004",
+  "agent_number": "+18005550001",
+  "category": "technical",
+  "transcript": [
+    {"speaker": "agent",    "text": "ConversalQ technical support, how can I help?", "timestamp_offset": 0},
+    {"speaker": "customer", "text": "I can't log into my account. I get an error saying 'invalid credentials' but I'm sure my password is right.", "timestamp_offset": 4},
+    {"speaker": "agent",    "text": "I'm sorry to hear that. Let's get this sorted. Can you tell me what browser and operating system you're using?", "timestamp_offset": 11},
+    {"speaker": "customer", "text": "Chrome on Windows 11.", "timestamp_offset": 18},
+    {"speaker": "agent",    "text": "Okay. First, let's try clearing your browser cache and cookies for our domain, then attempt the login again. Do you know how to do that?", "timestamp_offset": 22},
+    {"speaker": "customer", "text": "Yes, one second... ok I cleared them. Still same error.", "timestamp_offset": 35},
+    {"speaker": "agent",    "text": "Got it. Can you try opening the site in an incognito window?", "timestamp_offset": 48},
+    {"speaker": "customer", "text": "Same thing. It says invalid credentials.", "timestamp_offset": 58},
+    {"speaker": "agent",    "text": "Let me check your account on the backend. What's your email address?", "timestamp_offset": 64},
+    {"speaker": "customer", "text": "marcus.wright@example.com", "timestamp_offset": 70},
+    {"speaker": "agent",    "text": "I can see your account. It looks like it was flagged by our security system after 5 failed login attempts, possibly from an earlier attempt. I'm unlocking it now.", "timestamp_offset": 75},
+    {"speaker": "customer", "text": "Oh! I did try a few times before calling. I forgot I changed my password last week.", "timestamp_offset": 88},
+    {"speaker": "agent",    "text": "That explains it. Your account is unlocked. Try logging in now, and use the password you set last week.", "timestamp_offset": 96},
+    {"speaker": "customer", "text": "It worked! I'm in. Thank you so much.", "timestamp_offset": 108},
+    {"speaker": "agent",    "text": "Great! To prevent this in future, you can use the 'Forgot Password' link to reset if you're ever unsure. Is there anything else I can help with?", "timestamp_offset": 113},
+    {"speaker": "customer", "text": "No, that's perfect. Thanks!", "timestamp_offset": 122}
+  ],
+  "metadata": {
+    "resolved": true,
+    "sentiment": "positive",
+    "escalated": false,
+    "issue_type": "account_lockout",
+    "steps_taken": ["cache_cleared", "incognito_test", "account_unlocked"]
+  }
+}

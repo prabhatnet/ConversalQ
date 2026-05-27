@@ -1,0 +1,31 @@
+{
+  "call_id": "CALL_005",
+  "timestamp": "2026-05-05T15:20:00Z",
+  "duration_seconds": 540,
+  "channel": "chat",
+  "caller_number": "+15552341005",
+  "agent_number": "+18005550001",
+  "category": "technical",
+  "transcript": [
+    {"speaker": "agent",    "text": "Hi! ConversalQ developer support here. What can I help you with?", "timestamp_offset": 0},
+    {"speaker": "customer", "text": "I'm integrating your REST API into our Node.js app. I keep getting 401 errors even though I'm passing my API key in the header.", "timestamp_offset": 5},
+    {"speaker": "agent",    "text": "Let's take a look. Can you share how you're sending the API key in the request header?", "timestamp_offset": 12},
+    {"speaker": "customer", "text": "I'm using: Authorization: Bearer MY_API_KEY", "timestamp_offset": 18},
+    {"speaker": "agent",    "text": "That's the right format. A few things to check: 1) Make sure there are no extra spaces in the key, 2) Verify you're using the API key from the Developer section, not the account password. Can you confirm which key you're using?", "timestamp_offset": 24},
+    {"speaker": "customer", "text": "I'm using the one under Settings > API Keys. Let me double-check for spaces... actually there's a trailing newline! My code was reading from a .env file.", "timestamp_offset": 38},
+    {"speaker": "agent",    "text": "That's a very common issue! In Node.js, you can trim it with: process.env.API_KEY.trim(). Try that and let me know if it resolves it.", "timestamp_offset": 55},
+    {"speaker": "customer", "text": "One second... Yes! That fixed it. I'm getting 200 responses now.", "timestamp_offset": 72},
+    {"speaker": "agent",    "text": "Excellent! For future reference, always .trim() your environment variables when reading API keys. Is there anything else about the API integration I can help with?", "timestamp_offset": 78},
+    {"speaker": "customer", "text": "Actually yes — what's the rate limit for the /chat endpoint?", "timestamp_offset": 88},
+    {"speaker": "agent",    "text": "On the Pro plan you're on, it's 60 requests per minute per API key. You'll receive a 429 response if exceeded, with a Retry-After header telling you how long to wait.", "timestamp_offset": 93},
+    {"speaker": "customer", "text": "Perfect. Thanks for the quick help!", "timestamp_offset": 108},
+    {"speaker": "agent",    "text": "Happy to help! Good luck with the integration.", "timestamp_offset": 112}
+  ],
+  "metadata": {
+    "resolved": true,
+    "sentiment": "positive",
+    "escalated": false,
+    "issue_type": "api_authentication",
+    "root_cause": "trailing_newline_in_env_key"
+  }
+}

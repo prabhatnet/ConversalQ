@@ -1,0 +1,30 @@
+{
+  "call_id": "CALL_012",
+  "timestamp": "2026-05-12T10:30:00Z",
+  "duration_seconds": 290,
+  "channel": "voice",
+  "caller_number": "+15552341012",
+  "agent_number": "+18005550001",
+  "category": "general",
+  "transcript": [
+    {"speaker": "agent",    "text": "Hi, ConversalQ support! How can I help you?", "timestamp_offset": 0},
+    {"speaker": "customer", "text": "I just signed up today. I have no idea where to start. Can you walk me through the basics?", "timestamp_offset": 5},
+    {"speaker": "agent",    "text": "Welcome aboard! Absolutely. There are 3 steps to get you up and running:\n\n1. Set up your knowledge base — upload your FAQs, product docs, or policies so the AI can answer questions accurately.\n2. Configure your agents — choose which specialist agents to activate (billing, technical, etc.).\n3. Connect your channels — add your chat widget to your website or link your phone number via Twilio.\n\nDo you want to start with the knowledge base?", "timestamp_offset": 11},
+    {"speaker": "customer", "text": "Yes, how do I upload documents?", "timestamp_offset": 35},
+    {"speaker": "agent",    "text": "Go to Dashboard > Knowledge Base > Upload. You can upload PDFs, Word documents, or paste plain text. The system will automatically chunk and index it for your AI agents. Most documents are processed in under 2 minutes.", "timestamp_offset": 40},
+    {"speaker": "customer", "text": "What file types are supported?", "timestamp_offset": 54},
+    {"speaker": "agent",    "text": "We support PDF, DOCX, TXT, and Markdown files, up to 50MB per file. You can also paste URLs and we'll scrape the content for you.", "timestamp_offset": 58},
+    {"speaker": "customer", "text": "That's handy. And how do I add the chat widget to my website?", "timestamp_offset": 70},
+    {"speaker": "agent",    "text": "Go to Dashboard > Channels > Web Widget. You'll find a JavaScript snippet to paste into your site's HTML before the closing body tag. It takes about 2 minutes to install and no developer is required for most platforms.", "timestamp_offset": 76},
+    {"speaker": "customer", "text": "Perfect. This is clearer than I expected. I think I can take it from here.", "timestamp_offset": 92},
+    {"speaker": "agent",    "text": "Great! We also have a Getting Started guide at docs.conversalq.com/quickstart if you need a reference. Don't hesitate to call back if you have questions!", "timestamp_offset": 97},
+    {"speaker": "customer", "text": "Will do. Thanks so much!", "timestamp_offset": 108}
+  ],
+  "metadata": {
+    "resolved": true,
+    "sentiment": "positive",
+    "escalated": false,
+    "issue_type": "onboarding",
+    "new_customer": true
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "call_id": "CALL_002",
+  "timestamp": "2026-05-02T11:30:00Z",
+  "duration_seconds": 275,
+  "channel": "voice",
+  "caller_number": "+15552341002",
+  "agent_number": "+18005550001",
+  "category": "billing",
+  "transcript": [
+    {"speaker": "agent",    "text": "ConversalQ support, this is Jamie. How can I assist you?", "timestamp_offset": 0},
+    {"speaker": "customer", "text": "I want to cancel my subscription and get a refund for this month. I barely used the service.", "timestamp_offset": 5},
+    {"speaker": "agent",    "text": "I understand. I'm sorry to hear you want to cancel. May I ask what prompted this decision? Was there something we could have done better?", "timestamp_offset": 12},
+    {"speaker": "customer", "text": "Honestly the product is fine, I just don't have the budget right now. I signed up 4 days ago.", "timestamp_offset": 20},
+    {"speaker": "agent",    "text": "Thank you for letting me know. Since you subscribed less than 7 days ago, you're within our full refund window. I can process both the cancellation and a full refund of $99 right now.", "timestamp_offset": 28},
+    {"speaker": "customer", "text": "Oh really? I didn't know you had that policy. That's good to know.", "timestamp_offset": 40},
+    {"speaker": "agent",    "text": "Yes, we have a 7-day money-back guarantee. I've cancelled your subscription effective immediately and submitted the refund. You'll receive a confirmation email shortly.", "timestamp_offset": 46},
+    {"speaker": "customer", "text": "Perfect. And if my budget situation changes, can I come back?", "timestamp_offset": 58},
+    {"speaker": "agent",    "text": "Absolutely! Your account data will be retained for 90 days, so reactivating is easy. We'd love to have you back.", "timestamp_offset": 63},
+    {"speaker": "customer", "text": "Thanks Jamie, appreciate the help.", "timestamp_offset": 72},
+    {"speaker": "agent",    "text": "Anytime! Take care.", "timestamp_offset": 75}
+  ],
+  "metadata": {
+    "resolved": true,
+    "sentiment": "neutral",
+    "escalated": false,
+    "refund_issued": true,
+    "refund_amount": 99.00,
+    "subscription_cancelled": true
+  }
+}

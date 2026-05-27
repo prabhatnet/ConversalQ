@@ -1,0 +1,32 @@
+{
+  "call_id": "CALL_014",
+  "timestamp": "2026-05-14T09:50:00Z",
+  "duration_seconds": 330,
+  "channel": "voice",
+  "caller_number": "+15552341014",
+  "agent_number": "+18005550001",
+  "category": "escalation",
+  "transcript": [
+    {"speaker": "agent",    "text": "ConversalQ support, how can I help you?", "timestamp_offset": 0},
+    {"speaker": "customer", "text": "Your platform leaked our customer data. I have proof. My lawyer is going to hear about this if this isn't resolved today.", "timestamp_offset": 4},
+    {"speaker": "agent",    "text": "I take this matter extremely seriously. I want to assure you we have a dedicated security and legal response team. I'm escalating this right now to our Data Protection Officer. Can you share what evidence you have so I can pass it on accurately?", "timestamp_offset": 14},
+    {"speaker": "customer", "text": "We received emails from our customers saying they got phishing emails that referenced our ConversalQ conversations. It could only have come from your system.", "timestamp_offset": 27},
+    {"speaker": "agent",    "text": "Thank you for that detail — I've captured it. I want to be transparent: I'm not in a position to confirm or deny a breach at this stage, but I'm flagging this as a critical security incident right now. Your company name and contact will be passed directly to our DPO and legal team.", "timestamp_offset": 40},
+    {"speaker": "customer", "text": "How quickly will someone contact me?", "timestamp_offset": 56},
+    {"speaker": "agent",    "text": "A member of our security response team will contact you within 2 hours at the number you're calling from. Your incident reference is SEC-20260514-0091. This is treated as a P1 critical incident.", "timestamp_offset": 62},
+    {"speaker": "customer", "text": "Fine. Reference number again?", "timestamp_offset": 76},
+    {"speaker": "agent",    "text": "SEC-20260514-0091. I've also emailed this to the address on your account. Is there a direct email I should also use for the security team's response?", "timestamp_offset": 80},
+    {"speaker": "customer", "text": "Use legal@acmecorp.com.", "timestamp_offset": 92},
+    {"speaker": "agent",    "text": "Noted — legal@acmecorp.com added to the incident. You will hear from us within 2 hours. Thank you for bringing this to our attention.", "timestamp_offset": 97}
+  ],
+  "metadata": {
+    "resolved": false,
+    "sentiment": "negative",
+    "escalated": true,
+    "escalation_reason": "legal_threat_data_breach_claim",
+    "incident_reference": "SEC-20260514-0091",
+    "severity": "P1_critical",
+    "legal_contact": "legal@acmecorp.com",
+    "response_sla_hours": 2
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "call_id": "CALL_015",
+  "timestamp": "2026-05-15T14:40:00Z",
+  "duration_seconds": 450,
+  "channel": "voice",
+  "caller_number": "+15552341015",
+  "agent_number": "+18005550001",
+  "category": "escalation",
+  "transcript": [
+    {"speaker": "agent",    "text": "ConversalQ support, how can I assist?", "timestamp_offset": 0},
+    {"speaker": "customer", "text": "I've been dealing with a broken webhook integration for a week. I've followed every step in your docs and it still isn't working. I need someone senior.", "timestamp_offset": 5},
+    {"speaker": "agent",    "text": "I'm sorry you've been dealing with this for a week — that's far too long. Let me try a few things first. What error are you seeing when the webhook fires?", "timestamp_offset": 16},
+    {"speaker": "customer", "text": "It's a 500 from your server. I get the event in my logs but your system says it failed delivery.", "timestamp_offset": 26},
+    {"speaker": "agent",    "text": "A 500 on our end suggests a server-side processing error. Can I get your webhook endpoint URL and the event type?", "timestamp_offset": 35},
+    {"speaker": "customer", "text": "It's conversation.completed events going to https://api.acmecorp.com/webhooks/conversalq", "timestamp_offset": 43},
+    {"speaker": "agent",    "text": "Thank you. I can see in our webhook delivery logs that your endpoint is returning a 500 on the fourth retry — which means we're delivering successfully but something in your endpoint is failing. Do you have server logs showing what happens when we send the payload?", "timestamp_offset": 51},
+    {"speaker": "customer", "text": "Wait — you're saying it's on my side? Let me check... Oh. Our server is failing to parse the timestamp field. It's ISO 8601 but our parser expected Unix epoch.", "timestamp_offset": 68},
+    {"speaker": "agent",    "text": "That's exactly it. Our webhook payloads use ISO 8601 format. You'll need to parse it with something like new Date() in JavaScript or datetime.fromisoformat() in Python.", "timestamp_offset": 85},
+    {"speaker": "customer", "text": "I feel a bit silly. That was on our end all along.", "timestamp_offset": 97},
+    {"speaker": "agent",    "text": "Not at all — it's a subtle difference. For the record, I've added a note to our docs to make the timestamp format more prominent. Is the webhook working now after that fix?", "timestamp_offset": 103},
+    {"speaker": "customer", "text": "Testing now... yes! Delivery succeeded. That's a huge relief.", "timestamp_offset": 120},
+    {"speaker": "agent",    "text": "Excellent! Glad we got there. I won't escalate since we resolved it together. Is there anything else?", "timestamp_offset": 128},
+    {"speaker": "customer", "text": "No, I'm good. Thank you for being thorough.", "timestamp_offset": 136},
+    {"speaker": "agent",    "text": "Any time. Have a great day!", "timestamp_offset": 140}
+  ],
+  "metadata": {
+    "resolved": true,
+    "sentiment": "positive",
+    "escalated": false,
+    "escalation_reason": "initially_requested_senior_agent",
+    "issue_type": "webhook_integration",
+    "root_cause": "timestamp_format_mismatch_customer_side",
+    "escalation_avoided": true
+  }
+}

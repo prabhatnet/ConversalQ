@@ -1,0 +1,30 @@
+{
+  "call_id": "CALL_008",
+  "timestamp": "2026-05-08T13:45:00Z",
+  "duration_seconds": 310,
+  "channel": "chat",
+  "caller_number": "+15552341008",
+  "agent_number": "+18005550001",
+  "category": "account",
+  "transcript": [
+    {"speaker": "agent",    "text": "Welcome to ConversalQ! How can I help you today?", "timestamp_offset": 0},
+    {"speaker": "customer", "text": "I need to add 3 new team members to our account. We just hired them.", "timestamp_offset": 5},
+    {"speaker": "agent",    "text": "Happy to help! You can add team members directly from your dashboard under Settings > Team. You have 2 open seats on your current Business plan. The 3rd additional seat would be $15/month prorated.", "timestamp_offset": 11},
+    {"speaker": "customer", "text": "OK. Can I add them from there right now?", "timestamp_offset": 26},
+    {"speaker": "agent",    "text": "Yes. Click 'Invite Member', enter their work email, and choose their role — Admin, Manager, or Agent. They'll receive an invitation email to set up their account.", "timestamp_offset": 31},
+    {"speaker": "customer", "text": "What's the difference between Manager and Agent roles?", "timestamp_offset": 45},
+    {"speaker": "agent",    "text": "Agents can handle conversations and view their own performance stats. Managers can view all agent stats, access team reports, and modify conversation assignments, but cannot change billing or account settings. Admins have full access.", "timestamp_offset": 50},
+    {"speaker": "customer", "text": "Got it. Two should be Agents and one Manager. I'll set this up now. The extra $15 will just be charged to the card on file?", "timestamp_offset": 68},
+    {"speaker": "agent",    "text": "Correct — the prorated amount for the rest of this billing cycle will be charged to your card ending in 7891, and the full additional seat fee will apply from next month.", "timestamp_offset": 78},
+    {"speaker": "customer", "text": "Perfect. Thanks for explaining everything.", "timestamp_offset": 92},
+    {"speaker": "agent",    "text": "Of course! Let me know if there are any issues with the invitations. Is there anything else?", "timestamp_offset": 97},
+    {"speaker": "customer", "text": "No, all good. Cheers.", "timestamp_offset": 104}
+  ],
+  "metadata": {
+    "resolved": true,
+    "sentiment": "positive",
+    "escalated": false,
+    "issue_type": "team_management",
+    "seats_added": 3
+  }
+}

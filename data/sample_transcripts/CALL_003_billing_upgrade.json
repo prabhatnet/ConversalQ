@@ -1,0 +1,28 @@
+{
+  "call_id": "CALL_003",
+  "timestamp": "2026-05-03T14:05:00Z",
+  "duration_seconds": 198,
+  "channel": "chat",
+  "caller_number": "+15552341003",
+  "agent_number": "+18005550001",
+  "category": "billing",
+  "transcript": [
+    {"speaker": "agent",    "text": "Hi there! Welcome to ConversalQ. How can I help you today?", "timestamp_offset": 0},
+    {"speaker": "customer", "text": "I'm on the Basic plan at $29/month. I want to upgrade to Pro. What's included and how does billing work?", "timestamp_offset": 5},
+    {"speaker": "agent",    "text": "Great choice! The Pro plan is $79/month and includes unlimited agents, priority support, advanced analytics, and up to 50,000 messages per month. When you upgrade today, you'll only be billed the prorated difference for the remaining days in your current cycle.", "timestamp_offset": 12},
+    {"speaker": "customer", "text": "So I won't be double charged?", "timestamp_offset": 28},
+    {"speaker": "agent",    "text": "Correct. Today is the 3rd, and your billing cycle resets on the 15th. So you'd pay roughly $40 today for the prorated upgrade, then $79 on the 15th going forward.", "timestamp_offset": 32},
+    {"speaker": "customer", "text": "That makes sense. Can I upgrade right now through this chat?", "timestamp_offset": 44},
+    {"speaker": "agent",    "text": "Yes! I can process that for you. I'll apply the upgrade to your account now. You'll see the prorated charge on the card ending in 4242 on file.", "timestamp_offset": 49},
+    {"speaker": "customer", "text": "Yes, that card is fine. Go ahead.", "timestamp_offset": 60},
+    {"speaker": "agent",    "text": "Done! You're now on the Pro plan. Your new features are active immediately. I've emailed you a receipt for the prorated charge.", "timestamp_offset": 64},
+    {"speaker": "customer", "text": "Awesome, thank you!", "timestamp_offset": 72}
+  ],
+  "metadata": {
+    "resolved": true,
+    "sentiment": "positive",
+    "escalated": false,
+    "plan_change": {"from": "basic", "to": "pro"},
+    "prorated_charge": 40.00
+  }
+}

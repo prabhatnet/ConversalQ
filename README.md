@@ -4,25 +4,21 @@ Production-grade multi-agent AI system for automating call center operations.
 
 ## Quick Start
 
-```bash
+```powershell
 # Clone and navigate
-cd ConversalQ
+cd C:\GitProjects\ConversalQ
 
-# Copy environment file
+# Copy environment file and add your OpenAI API key
 cp .env.example .env
-# Edit .env with your OpenAI API key
 
-# Start with Docker Compose
-docker compose -f infra/docker-compose.yml -f infra/docker-compose.dev.yml up --build
+# Activate the backend virtual environment (IMPORTANT: use backend\.venv, not the root .venv)
+& C:\GitProjects\ConversalQ\backend\.venv\Scripts\Activate.ps1
 
-# Or run locally
-cd backend
-python -m venv .venv
-.venv\Scripts\activate  # Windows
-pip install -r requirements.txt
+# Install dependencies (first time only)
+pip install -r backend\requirements.txt
 
-# Start server (Windows — uses the backend venv)
-C:\GitProjects\ConversalQ\backend\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 --app-dir C:\GitProjects\ConversalQ\backend
+# Start the server
+python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 --app-dir C:\GitProjects\ConversalQ\backend
 ```
 
 ## API Documentation

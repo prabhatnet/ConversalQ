@@ -1,0 +1,32 @@
+{
+  "call_id": "CALL_006",
+  "timestamp": "2026-05-06T10:10:00Z",
+  "duration_seconds": 380,
+  "channel": "voice",
+  "caller_number": "+15552341006",
+  "agent_number": "+18005550001",
+  "category": "technical",
+  "transcript": [
+    {"speaker": "agent",    "text": "ConversalQ support, how can I help you today?", "timestamp_offset": 0},
+    {"speaker": "customer", "text": "Your app has been really slow for the past two days. Messages take like 8 to 10 seconds to get a response. It used to be under 2 seconds.", "timestamp_offset": 4},
+    {"speaker": "agent",    "text": "I apologize for the degraded experience. Can you tell me which region you're in, and are you using the web app or the API directly?", "timestamp_offset": 14},
+    {"speaker": "customer", "text": "We're in the EU — Frankfurt. Using the API directly in our production app.", "timestamp_offset": 22},
+    {"speaker": "agent",    "text": "Thank you. I can see we had a capacity scaling event in the EU-West region starting May 4th. Our engineering team is aware and actively working on it. Current estimated resolution is within 4 hours.", "timestamp_offset": 29},
+    {"speaker": "customer", "text": "This is affecting our customers. Is there a status page I can monitor?", "timestamp_offset": 44},
+    {"speaker": "agent",    "text": "Yes — status.conversalq.com shows real-time updates for all regions. The current incident is listed there with updates every 30 minutes. I'd also recommend subscribing to email alerts on that page.", "timestamp_offset": 50},
+    {"speaker": "customer", "text": "OK. Is there any workaround in the meantime?", "timestamp_offset": 65},
+    {"speaker": "agent",    "text": "You can temporarily route requests to our US-East endpoint at api-us-east.conversalq.com. Latency will be slightly higher from Frankfurt, around 150ms overhead, but it's currently performing normally.", "timestamp_offset": 70},
+    {"speaker": "customer", "text": "That's actually helpful. I'll do that. Thanks for the transparency.", "timestamp_offset": 85},
+    {"speaker": "agent",    "text": "Of course. We'll send a post-incident report to all affected accounts within 48 hours of resolution. Is there anything else I can help with?", "timestamp_offset": 91},
+    {"speaker": "customer", "text": "No, I'm good. Thanks.", "timestamp_offset": 101}
+  ],
+  "metadata": {
+    "resolved": false,
+    "sentiment": "neutral",
+    "escalated": false,
+    "issue_type": "performance_degradation",
+    "region": "EU-West",
+    "workaround_provided": true,
+    "incident_active": true
+  }
+}

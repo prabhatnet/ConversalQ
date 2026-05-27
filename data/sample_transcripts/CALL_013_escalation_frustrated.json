@@ -1,0 +1,32 @@
+{
+  "call_id": "CALL_013",
+  "timestamp": "2026-05-13T16:10:00Z",
+  "duration_seconds": 395,
+  "channel": "voice",
+  "caller_number": "+15552341013",
+  "agent_number": "+18005550001",
+  "category": "escalation",
+  "transcript": [
+    {"speaker": "agent",    "text": "Hi, ConversalQ support. How can I help you?", "timestamp_offset": 0},
+    {"speaker": "customer", "text": "I've called three times about this billing issue and nobody has fixed it. I want to speak to a real person RIGHT NOW. Not a bot.", "timestamp_offset": 4},
+    {"speaker": "agent",    "text": "I completely understand your frustration and I sincerely apologize for the repeated experience. You deserve better than this. I'm escalating you to a senior human agent right now — you won't have to re-explain your issue.", "timestamp_offset": 14},
+    {"speaker": "customer", "text": "Finally. Every time I call I have to start from scratch. It's exhausting.", "timestamp_offset": 26},
+    {"speaker": "agent",    "text": "That's completely unacceptable and I hear you. I'm attaching a full summary of your previous interactions to your case so the senior agent has full context before they speak with you. Your case reference is CASE-20260513-4471.", "timestamp_offset": 32},
+    {"speaker": "customer", "text": "OK. How long will this take?", "timestamp_offset": 46},
+    {"speaker": "agent",    "text": "A senior agent will call you back within 15 minutes at the number you're calling from. You'll also receive a confirmation SMS with the case number. Would you prefer to hold or receive a callback?", "timestamp_offset": 50},
+    {"speaker": "customer", "text": "Callback is fine.", "timestamp_offset": 63},
+    {"speaker": "agent",    "text": "Confirmed. Callback within 15 minutes. Case number CASE-20260513-4471. Is there anything immediate I can note down to help the senior agent?", "timestamp_offset": 67},
+    {"speaker": "customer", "text": "Yes — I was charged for a plan I never requested. It's been happening for 3 months and I want a full 3-month refund.", "timestamp_offset": 76},
+    {"speaker": "agent",    "text": "I've logged that clearly: unauthorized plan charge for 3 months, full refund requested. The senior agent will review this as a priority. Thank you for your patience, and again I'm sorry for the trouble you've experienced.", "timestamp_offset": 88},
+    {"speaker": "customer", "text": "OK. I'll wait for the call.", "timestamp_offset": 102}
+  ],
+  "metadata": {
+    "resolved": false,
+    "sentiment": "negative",
+    "escalated": true,
+    "escalation_reason": "repeated_contact_no_resolution",
+    "case_reference": "CASE-20260513-4471",
+    "callback_scheduled": true,
+    "callback_sla_minutes": 15
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "call_id": "CALL_011",
+  "timestamp": "2026-05-11T14:25:00Z",
+  "duration_seconds": 172,
+  "channel": "chat",
+  "caller_number": "+15552341011",
+  "agent_number": "+18005550001",
+  "category": "general",
+  "transcript": [
+    {"speaker": "agent",    "text": "Hi! How can I help you today?", "timestamp_offset": 0},
+    {"speaker": "customer", "text": "Can you break down the pricing plans? I want to know which one is right for a 10-person team.", "timestamp_offset": 4},
+    {"speaker": "agent",    "text": "Sure! Here's a quick overview:\n\n• **Starter** – $29/month: 1 agent, 5,000 messages/month, basic analytics.\n• **Pro** – $79/month: 5 agents, 50,000 messages/month, priority support, advanced analytics.\n• **Business** – $199/month: 20 agents, 200,000 messages/month, dedicated success manager, custom integrations.\n• **Enterprise** – Custom pricing: Unlimited agents, SLA guarantees, on-premise option.\n\nFor a 10-person team, the Business plan is likely the best fit.", "timestamp_offset": 9},
+    {"speaker": "customer", "text": "Is annual billing available with a discount?", "timestamp_offset": 32},
+    {"speaker": "agent",    "text": "Yes! Annual billing saves you 20% — so the Business plan would be $159/month instead of $199 when billed yearly. That's a saving of $480 per year.", "timestamp_offset": 37},
+    {"speaker": "customer", "text": "And can we pay by invoice rather than credit card?", "timestamp_offset": 50},
+    {"speaker": "agent",    "text": "Invoice payment is available on the Business and Enterprise plans. Your account manager can set that up once you sign up.", "timestamp_offset": 55},
+    {"speaker": "customer", "text": "Perfect. That answers everything. Thanks!", "timestamp_offset": 65},
+    {"speaker": "agent",    "text": "Great! Let us know when you're ready to get started. Have a good one!", "timestamp_offset": 68}
+  ],
+  "metadata": {
+    "resolved": true,
+    "sentiment": "positive",
+    "escalated": false,
+    "issue_type": "pricing_inquiry",
+    "plan_recommended": "business"
+  }
+}
