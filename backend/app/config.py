@@ -64,7 +64,7 @@ class Settings(BaseSettings):
     rate_limit_per_minute: int = 60
 
     # --- CORS ---
-    cors_origins: List[str] = ["http://localhost:3000", "http://localhost:8000"]
+    cors_origins: List[str] = ["http://localhost:3000", "http://localhost:5173", "http://localhost:8000"]
 
     # --- ChromaDB (Phase 2) ---
     chroma_host: str = "localhost"
