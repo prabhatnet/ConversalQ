@@ -1,20 +1,25 @@
 import { CheckCircle2, XCircle, Hash, MessageSquare, Zap } from 'lucide-react';
-import type { TranscriptReplayResponse } from '../types';
+import type { TranscriptReplayResponse, TranscriptFile, ConversationSummaryResponse } from '../types';
 import { TurnCard } from './TurnCard';
 import { IntentBadge } from './IntentBadge';
+import { SummaryPanel } from './SummaryPanel';
+import { MetadataPanel } from './MetadataPanel';
+import { QAScorePanel } from './QAScorePanel';
+import { StatusControls } from './StatusControls';
 
 interface ReplayResultsProps {
   result: TranscriptReplayResponse;
-  callMeta?: { category?: string; duration_seconds?: number; channel?: string };
+  callMeta?: TranscriptFile;
+  summary?: ConversationSummaryResponse | null;
+  summaryLoading?: boolean;
 }
 
-export function ReplayResults({ result, callMeta }: ReplayResultsProps) {
+export function ReplayResults({ result, callMeta, summary, summaryLoading }: ReplayResultsProps) {
   const escalated = result.turns.some((t) => t.should_escalate);
   const avgLatency = result.turns.length
     ? Math.round(result.turns.reduce((s, t) => s + t.latency_ms, 0) / result.turns.length)
     : 0;
 
-  // Dominant intent
   const intentCounts: Record<string, number> = {};
   for (const t of result.turns) {
     if (t.intent) intentCounts[t.intent] = (intentCounts[t.intent] ?? 0) + 1;
@@ -22,8 +27,8 @@ export function ReplayResults({ result, callMeta }: ReplayResultsProps) {
   const dominantIntent = Object.entries(intentCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
 
   return (
-    <div className="space-y-6">
-      {/* Summary bar */}
+    <div className="space-y-5">
+      {/* Stats bar */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <StatCard icon={<Hash size={16} />} label="Call ID" value={result.call_id ?? '—'} />
         <StatCard icon={<MessageSquare size={16} />} label="Customer turns" value={String(result.customer_turns_replayed)} />
@@ -56,7 +61,27 @@ export function ReplayResults({ result, callMeta }: ReplayResultsProps) {
         )}
       </div>
 
-      {/* Turn-by-turn */}
+      {/* Metadata & Tags panel */}
+      {callMeta?.metadata && Object.keys(callMeta.metadata).length > 0 && (
+        <MetadataPanel
+          metadata={callMeta.metadata}
+          callId={callMeta.call_id}
+          channel={callMeta.channel}
+          category={callMeta.category}
+          timestamp={callMeta.timestamp}
+        />
+      )}
+
+      {/* Two-column layout for Summary + QA Score */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <SummaryPanel summary={summary ?? null} loading={summaryLoading ?? false} />
+        <QAScorePanel />
+      </div>
+
+      {/* Status controls */}
+      <StatusControls conversationId={result.conversation_id} />
+
+      {/* Transcript replay */}
       <div className="space-y-3">
         <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Transcript Replay</h2>
         {result.turns.map((turn, i) => (

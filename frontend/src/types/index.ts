@@ -49,3 +49,23 @@ export interface ChatResponse {
   should_escalate: boolean;
   latency_ms: number;
 }
+
+export interface ConversationSummaryResponse {
+  conversation_id: string;
+  status: string;
+  total_turns: number;
+  has_summary: boolean;
+  summary: string | null;
+}
+
+export interface LiveChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  intent?: string | null;
+  agent_name?: string | null;
+  confidence?: number | null;
+  should_escalate?: boolean;
+  latency_ms?: number;
+}
+

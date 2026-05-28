@@ -4,6 +4,18 @@ Production-grade multi-agent AI system for automating call center operations.
 
 ## Quick Start
 
+### Prerequisites
+
+| Requirement | Version |
+|---|---|
+| Python | 3.12+ |
+| Node.js | 18+ |
+| npm | 9+ |
+| PostgreSQL | 15+ |
+| Redis | 7+ |
+
+### Backend
+
 ```powershell
 # Clone and navigate
 cd C:\GitProjects\ConversalQ
@@ -17,15 +29,43 @@ cp .env.example .env
 # Install dependencies (first time only)
 pip install -r backend\requirements.txt
 
-# Start the server
+# Start the API server
 python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 --app-dir C:\GitProjects\ConversalQ\backend
 ```
 
-## API Documentation
+### Frontend (React UI)
 
-Once running, visit:
-- Swagger UI: http://localhost:8000/docs
-- Health Check: http://localhost:8000/api/v1/health
+```powershell
+# Navigate to the frontend folder
+cd C:\GitProjects\ConversalQ\frontend
+
+# Install Node dependencies (first time only)
+npm install
+
+# Start the dev server (proxies /api requests to the backend automatically)
+npm run dev
+```
+
+The UI will be available at **http://localhost:5173**.
+
+> The Vite dev server proxies all `/api/*` requests to the backend at `http://localhost:8000`, so both services must be running simultaneously.
+
+### Build for Production
+
+```powershell
+cd C:\GitProjects\ConversalQ\frontend
+npm run build
+# Output is in frontend/dist/ — serve with any static file host or Nginx
+```
+
+## Running Services
+
+| Service | URL | Description |
+|---|---|---|
+| React UI | http://localhost:5173 | Transcript replay interface |
+| Backend API | http://localhost:8000 | FastAPI REST server |
+| Swagger UI | http://localhost:8000/docs | Interactive API explorer |
+| Health Check | http://localhost:8000/api/v1/health | Liveness probe |
 
 ## API Endpoints
 
@@ -34,6 +74,7 @@ Once running, visit:
 |--------|------|-------------|
 | POST | `/api/v1/chat` | Send a message, receive a complete AI response |
 | POST | `/api/v1/chat/stream` | Send a message, receive a streaming SSE response |
+| POST | `/api/v1/chat/replay` | Replay a full transcript JSON through the agent graph |
 | GET | `/api/v1/chat/{id}/history` | Retrieve full message history for a conversation |
 | GET | `/api/v1/chat/{id}/summary` | Retrieve the LLM-generated memory summary |
 | PATCH | `/api/v1/chat/{id}/status` | Manually update conversation status |
@@ -107,6 +148,23 @@ curl.exe -X PATCH http://localhost:8000/api/v1/chat/<conversation_id>/status `
   -d '{"status": "resolved"}'
 ```
 
+### Replay a Transcript (Batch)
+```powershell
+# Submit a full transcript JSON to replay all customer turns through the agent graph
+curl.exe -X POST http://localhost:8000/api/v1/chat/replay `
+  -H "Content-Type: application/json" `
+  -d '{
+    "call_id": "CALL_001",
+    "transcript": [
+      {"speaker": "agent",    "text": "Hi, how can I help?", "timestamp_offset": 0},
+      {"speaker": "customer", "text": "I was charged twice this month.", "timestamp_offset": 5},
+      {"speaker": "customer", "text": "Both charges are $49.99 on May 3rd.", "timestamp_offset": 18}
+    ]
+  }'
+```
+
+> Tip: drop any file from `data/sample_transcripts/` into the React UI at http://localhost:5173 for a visual replay.
+
 ### Simulate Twilio Inbound Call
 ```powershell
 # Simulates the webhook Twilio sends when a call arrives
@@ -148,7 +206,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for full system design.
 | Database | PostgreSQL, Redis, ChromaDB |
 | Embeddings | OpenAI text-embedding-3-small |
 | Logging | structlog |
-| Frontend | React, TailwindCSS, ShadCN |
+| Frontend | React 19, Vite 8, Tailwind CSS 4, lucide-react |
 | Voice | Twilio 9.4 (TwiML + webhook validation), Deepgram SDK 3.7 (live STT), OpenAI TTS |
 | Observability | OpenTelemetry, Prometheus, Grafana |
 | Infrastructure | Docker, Kubernetes, GitHub Actions |

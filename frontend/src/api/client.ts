@@ -1,4 +1,4 @@
-import type { TranscriptFile, TranscriptReplayResponse, ChatRequest, ChatResponse } from '../types';
+import type { TranscriptFile, TranscriptReplayResponse, ChatRequest, ChatResponse, ConversationSummaryResponse } from '../types';
 
 const BASE = '/api/v1';
 
@@ -30,3 +30,21 @@ export async function sendChatMessage(req: ChatRequest): Promise<ChatResponse> {
   });
   return handleResponse<ChatResponse>(res);
 }
+
+export async function fetchSummary(conversationId: string): Promise<ConversationSummaryResponse> {
+  const res = await fetch(`${BASE}/chat/${conversationId}/summary`);
+  return handleResponse<ConversationSummaryResponse>(res);
+}
+
+export async function updateConversationStatus(
+  conversationId: string,
+  status: string,
+): Promise<{ conversation_id: string; status: string }> {
+  const res = await fetch(`${BASE}/chat/${conversationId}/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status }),
+  });
+  return handleResponse<{ conversation_id: string; status: string }>(res);
+}
+
