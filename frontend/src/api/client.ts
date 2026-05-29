@@ -1,4 +1,4 @@
-import type { TranscriptFile, TranscriptReplayResponse, ChatRequest, ChatResponse, ConversationSummaryResponse } from '../types';
+import type { TranscriptFile, TranscriptReplayResponse, ChatRequest, ChatResponse, ConversationSummaryResponse, QAScoreResponse } from '../types';
 
 const BASE = '/api/v1';
 
@@ -46,5 +46,14 @@ export async function updateConversationStatus(
     body: JSON.stringify({ status }),
   });
   return handleResponse<{ conversation_id: string; status: string }>(res);
+}
+
+export async function fetchQAScore(conversationId: string, notes?: string): Promise<QAScoreResponse> {
+  const res = await fetch(`${BASE}/chat/${conversationId}/qa-score`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ notes: notes ?? null }),
+  });
+  return handleResponse<QAScoreResponse>(res);
 }
 

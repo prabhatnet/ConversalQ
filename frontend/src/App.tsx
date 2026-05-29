@@ -3,43 +3,46 @@ import { Loader2, RotateCcw, FileSearch, MessageSquare } from "lucide-react";
 import { TranscriptInput } from "./components/TranscriptInput";
 import { ReplayResults } from "./components/ReplayResults";
 import { LiveChat } from "./components/LiveChat";
-import { replayTranscript, fetchSummary } from "./api/client";
-import type { TranscriptFile, TranscriptReplayResponse, ConversationSummaryResponse } from "./types";
+import { replayTranscript, fetchSummary, fetchQAScore } from "./api/client";
+import type {
+  TranscriptFile,
+  TranscriptReplayResponse,
+  ConversationSummaryResponse,
+  QAScoreResponse,
+} from "./types";
 
 type Tab = "replay" | "chat";
 
 export default function App() {
   const [tab, setTab] = useState<Tab>("replay");
 
-  // Replay state
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<TranscriptReplayResponse | null>(null);
   const [callMeta, setCallMeta] = useState<TranscriptFile | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Summary state
   const [summary, setSummary] = useState<ConversationSummaryResponse | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
+
+  const [qaScore, setQaScore] = useState<QAScoreResponse | null>(null);
+  const [qaLoading, setQaLoading] = useState(false);
 
   async function handleTranscript(file: TranscriptFile) {
     setError(null);
     setResult(null);
     setSummary(null);
+    setQaScore(null);
     setCallMeta(file);
     setLoading(true);
     try {
       const res = await replayTranscript(file);
       setResult(res);
-      // Fetch summary in background after replay completes
+      // Fetch summary in parallel (non-blocking)
       setSummaryLoading(true);
-      try {
-        const sum = await fetchSummary(res.conversation_id);
-        setSummary(sum);
-      } catch {
-        // Summary fetch failing is non-critical
-      } finally {
-        setSummaryLoading(false);
-      }
+      fetchSummary(res.conversation_id)
+        .then(setSummary)
+        .catch(() => {/* non-critical */})
+        .finally(() => setSummaryLoading(false));
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -47,10 +50,24 @@ export default function App() {
     }
   }
 
+  async function handleRequestQAScore() {
+    if (!result) return;
+    setQaLoading(true);
+    try {
+      const score = await fetchQAScore(result.conversation_id);
+      setQaScore(score);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setQaLoading(false);
+    }
+  }
+
   function reset() {
     setResult(null);
     setCallMeta(null);
     setSummary(null);
+    setQaScore(null);
     setError(null);
   }
 
@@ -61,7 +78,6 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Header */}
       <header className="border-b border-slate-800 bg-slate-950/80 backdrop-blur sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -81,7 +97,6 @@ export default function App() {
           )}
         </div>
 
-        {/* Tab bar */}
         <div className="max-w-5xl mx-auto px-6 flex gap-1 -mb-px">
           {TABS.map(({ id, label, icon }) => (
             <button
@@ -98,10 +113,7 @@ export default function App() {
         </div>
       </header>
 
-      {/* Main */}
       <main className="flex-1 max-w-5xl mx-auto w-full px-6 py-8">
-
-        {/* ── Transcript Replay tab ── */}
         {tab === "replay" && (
           <div className="space-y-6">
             {!result && !loading && (
@@ -134,16 +146,17 @@ export default function App() {
                 callMeta={callMeta ?? undefined}
                 summary={summary}
                 summaryLoading={summaryLoading}
+                qaScore={qaScore}
+                qaLoading={qaLoading}
+                onRequestQAScore={handleRequestQAScore}
               />
             )}
           </div>
         )}
 
-        {/* ── Live Chat tab ── */}
         {tab === "chat" && <LiveChat />}
       </main>
 
-      {/* Footer */}
       <footer className="border-t border-slate-800 py-4 text-center text-xs text-slate-600">
         ConversalQ - Powered by LangGraph + GPT-4o
       </footer>

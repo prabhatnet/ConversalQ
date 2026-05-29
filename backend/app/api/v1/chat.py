@@ -2,6 +2,7 @@
 Chat API endpoints — handles synchronous and streaming chat interactions.
 
 Phase 4: Added conversation history, summary, and status management endpoints.
+Week 2: Added QA scoring endpoint and transcript replay.
 """
 
 from typing import Optional
@@ -11,7 +12,7 @@ import structlog
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 
-from app.dependencies import get_chat_service
+from app.dependencies import get_chat_service, get_qa_service
 from app.schemas.chat import (
     ChatRequest,
     ChatResponse,
@@ -23,6 +24,8 @@ from app.schemas.chat import (
     TranscriptReplayResponse,
     ReplayTurnResult,
 )
+from app.schemas.qa import QAScoreRequest, QAScoreResponse
+from app.services.qa_service import QAService
 from app.services.chat_service import ChatService
 from app.core.exceptions import ConversationNotFoundError
 
@@ -235,4 +238,45 @@ async def replay_transcript(
         customer_turns_replayed=len(results),
         turns=results,
     )
+
+
+@router.post(
+    "/{conversation_id}/qa-score",
+    response_model=QAScoreResponse,
+    tags=["Quality Assurance"],
+    summary="Score conversation quality",
+)
+async def score_conversation_quality(
+    conversation_id: UUID,
+    body: QAScoreRequest = QAScoreRequest(),
+    qa_service: QAService = Depends(get_qa_service),
+) -> QAScoreResponse:
+    """
+    Run the Quality Scoring Agent on a completed conversation.
+
+    Uses OpenAI function calling with a structured four-dimension rubric:
+
+    - **Empathy** — Did the agent acknowledge and validate customer feelings?
+    - **Tone** — Was the agent professional and courteous throughout?
+    - **Resolution** — Was the customer's issue fully resolved or escalated?
+    - **Professionalism** — Did the agent follow correct procedures?
+
+    Each dimension is scored 0.0–1.0. An `overall_score` (mean of all four)
+    and a plain-language `overall_summary` are also returned.
+    """
+    try:
+        return await qa_service.score_conversation(
+            conversation_id=conversation_id,
+            notes=body.notes,
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(exc),
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        )
 

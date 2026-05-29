@@ -1,5 +1,5 @@
 import { CheckCircle2, XCircle, Hash, MessageSquare, Zap } from 'lucide-react';
-import type { TranscriptReplayResponse, TranscriptFile, ConversationSummaryResponse } from '../types';
+import type { TranscriptReplayResponse, TranscriptFile, ConversationSummaryResponse, QAScoreResponse } from '../types';
 import { TurnCard } from './TurnCard';
 import { IntentBadge } from './IntentBadge';
 import { SummaryPanel } from './SummaryPanel';
@@ -12,9 +12,12 @@ interface ReplayResultsProps {
   callMeta?: TranscriptFile;
   summary?: ConversationSummaryResponse | null;
   summaryLoading?: boolean;
+  qaScore?: QAScoreResponse | null;
+  qaLoading?: boolean;
+  onRequestQAScore?: () => void;
 }
 
-export function ReplayResults({ result, callMeta, summary, summaryLoading }: ReplayResultsProps) {
+export function ReplayResults({ result, callMeta, summary, summaryLoading, qaScore, qaLoading, onRequestQAScore }: ReplayResultsProps) {
   const escalated = result.turns.some((t) => t.should_escalate);
   const avgLatency = result.turns.length
     ? Math.round(result.turns.reduce((s, t) => s + t.latency_ms, 0) / result.turns.length)
@@ -75,7 +78,12 @@ export function ReplayResults({ result, callMeta, summary, summaryLoading }: Rep
       {/* Two-column layout for Summary + QA Score */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <SummaryPanel summary={summary ?? null} loading={summaryLoading ?? false} />
-        <QAScorePanel />
+        <QAScorePanel
+          scores={qaScore}
+          loading={qaLoading}
+          onRequestScore={onRequestQAScore}
+          conversationId={result.conversation_id}
+        />
       </div>
 
       {/* Status controls */}

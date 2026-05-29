@@ -77,6 +77,7 @@ npm run build
 | POST | `/api/v1/chat/replay` | Replay a full transcript JSON through the agent graph |
 | GET | `/api/v1/chat/{id}/history` | Retrieve full message history for a conversation |
 | GET | `/api/v1/chat/{id}/summary` | Retrieve the LLM-generated memory summary |
+| POST | `/api/v1/chat/{id}/qa-score` | Run the Quality Scoring Agent on a completed conversation |
 | PATCH | `/api/v1/chat/{id}/status` | Manually update conversation status |
 
 ### Knowledge Base

@@ -58,6 +58,23 @@ export interface ConversationSummaryResponse {
   summary: string | null;
 }
 
+export interface DimensionScore {
+  score: number;
+  reasoning: string;
+}
+
+export interface QAScoreResponse {
+  conversation_id: string;
+  overall_score: number;
+  empathy: DimensionScore;
+  tone: DimensionScore;
+  resolution: DimensionScore;
+  professionalism: DimensionScore;
+  overall_summary: string;
+  model: string;
+  latency_ms: number;
+}
+
 export interface LiveChatMessage {
   id: string;
   role: 'user' | 'assistant';

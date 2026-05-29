@@ -24,6 +24,7 @@ from app.services.llm_service import LLMService
 from app.services.knowledge_service import KnowledgeService
 from app.services.memory_service import ConversationMemoryService
 from app.services.voice_service import VoiceService
+from app.services.qa_service import QAService
 
 
 async def get_db(
@@ -108,3 +109,13 @@ def get_voice_service(
 ) -> VoiceService:
     """Provide the VoiceService — bridges Twilio webhooks and the agent graph."""
     return VoiceService(chat_service=chat_service)
+
+
+def get_qa_service() -> QAService:
+    """Provide the QAService using in-memory repositories."""
+    conversation_repo = InMemoryConversationRepository()
+    message_repo = InMemoryMessageRepository()
+    return QAService(
+        conversation_repo=conversation_repo,
+        message_repo=message_repo,
+    )
