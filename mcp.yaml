@@ -1,0 +1,317 @@
+# =============================================================================
+# ConversalQ — Model Context Protocol (MCP) Server Configuration
+#
+# This file declares ConversalQ as an MCP-compatible server so that any
+# MCP client (Claude Desktop, Cursor, VS Code Copilot, etc.) can connect
+# and call call-center tools directly.
+#
+# MCP Spec: https://modelcontextprotocol.io/specification
+# Transport: HTTP (Streamable HTTP transport over the existing FastAPI app)
+# Base URL:  http://localhost:8000  (override via CONVERSALQ_BASE_URL env var)
+# =============================================================================
+
+name: conversalq
+version: "1.0.0"
+description: >
+  Enterprise AI Call Center Assistant.
+  Provides multi-agent orchestration for customer support: intent routing,
+  billing/technical/account/escalation specialists, RAG knowledge base,
+  conversational memory, QA scoring, and transcript replay.
+
+server:
+  transport: http
+  base_url: "${CONVERSALQ_BASE_URL:-http://localhost:8000}"
+  auth:
+    type: none          # Switch to "bearer" and set token when JWT is enabled
+
+# ---------------------------------------------------------------------------
+# Tools — callable actions exposed to MCP clients
+# Each tool maps 1:1 to a FastAPI endpoint.
+# ---------------------------------------------------------------------------
+tools:
+
+  # --- Chat / Conversation ---
+
+  - name: send_message
+    description: >
+      Send a customer message to the multi-agent system and receive a
+      structured AI response. Creates a new conversation when
+      conversation_id is omitted; continues an existing one otherwise.
+      The router agent classifies intent and delegates to the appropriate
+      specialist (billing, technical, account, general, escalation).
+    http:
+      method: POST
+      path: /api/v1/chat
+    inputSchema:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+          minLength: 1
+          maxLength: 10000
+          description: The customer's message text.
+          examples: ["I haven't received my invoice for March"]
+        conversation_id:
+          type: string
+          format: uuid
+          description: >
+            Existing conversation UUID for context continuity.
+            Omit to start a new conversation.
+    outputSchema:
+      type: object
+      properties:
+        conversation_id:   { type: string, format: uuid }
+        message_id:        { type: string, format: uuid }
+        response:          { type: string }
+        intent:            { type: string, nullable: true }
+        agent_name:        { type: string, nullable: true }
+        confidence:        { type: number, minimum: 0, maximum: 1 }
+        should_escalate:   { type: boolean }
+        latency_ms:        { type: integer }
+        model:             { type: string }
+
+  - name: get_conversation_history
+    description: >
+      Retrieve the full message history for a conversation, ordered
+      oldest-first. Includes both customer turns and agent responses
+      with their metadata (intent, confidence, latency).
+    http:
+      method: GET
+      path: /api/v1/chat/{conversation_id}/history
+    inputSchema:
+      type: object
+      required: [conversation_id]
+      properties:
+        conversation_id:
+          type: string
+          format: uuid
+          description: The conversation to retrieve history for.
+
+  - name: get_conversation_summary
+    description: >
+      Retrieve the LLM-generated rolling summary for a conversation.
+      The summary is produced by a ConversationMemoryService that
+      compresses older turns to maintain context within the context window.
+    http:
+      method: GET
+      path: /api/v1/chat/{conversation_id}/summary
+    inputSchema:
+      type: object
+      required: [conversation_id]
+      properties:
+        conversation_id:
+          type: string
+          format: uuid
+
+  - name: update_conversation_status
+    description: >
+      Manually update the status of a conversation.
+      Valid values: "open", "resolved", "escalated", "closed".
+    http:
+      method: PATCH
+      path: /api/v1/chat/{conversation_id}/status
+    inputSchema:
+      type: object
+      required: [conversation_id, status]
+      properties:
+        conversation_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [open, resolved, escalated, closed]
+          description: Target status for the conversation.
+
+  - name: score_conversation_quality
+    description: >
+      Run the Quality Scoring Agent on a completed conversation.
+      Uses OpenAI function-calling with a structured four-dimension rubric
+      (empathy, tone, resolution, professionalism). Returns a score 0–1
+      for each dimension plus an overall score and plain-language summary.
+    http:
+      method: POST
+      path: /api/v1/chat/{conversation_id}/qa-score
+    inputSchema:
+      type: object
+      required: [conversation_id]
+      properties:
+        conversation_id:
+          type: string
+          format: uuid
+        notes:
+          type: string
+          nullable: true
+          description: Optional evaluator notes appended to the scoring prompt.
+    outputSchema:
+      type: object
+      properties:
+        conversation_id:  { type: string, format: uuid }
+        overall_score:    { type: number, minimum: 0, maximum: 1 }
+        empathy:          { $ref: "#/components/DimensionScore" }
+        tone:             { $ref: "#/components/DimensionScore" }
+        resolution:       { $ref: "#/components/DimensionScore" }
+        professionalism:  { $ref: "#/components/DimensionScore" }
+        overall_summary:  { type: string }
+        model:            { type: string }
+        latency_ms:       { type: integer }
+
+  - name: replay_transcript
+    description: >
+      Replay a saved call transcript through the full multi-agent pipeline.
+      Each customer turn is submitted as a live message; the system returns
+      the agent response, intent classification, confidence, and escalation
+      flag for every turn. Useful for batch evaluation and QA testing.
+    http:
+      method: POST
+      path: /api/v1/chat/replay
+    inputSchema:
+      type: object
+      required: [transcript]
+      properties:
+        call_id:
+          type: string
+          nullable: true
+          description: Optional call identifier for tracking.
+        transcript:
+          type: array
+          minItems: 1
+          description: Ordered list of conversation turns.
+          items:
+            type: object
+            required: [speaker, text]
+            properties:
+              speaker:
+                type: string
+                enum: [customer, agent]
+              text:
+                type: string
+              timestamp_offset:
+                type: number
+                nullable: true
+
+  # --- Knowledge Base ---
+
+  - name: search_knowledge_base
+    description: >
+      Run a natural-language semantic search over all indexed knowledge-base
+      documents. Returns ranked text chunks with source document and
+      similarity score. Used by specialist agents for RAG-augmented answers.
+    http:
+      method: POST
+      path: /api/v1/knowledge/search
+    inputSchema:
+      type: object
+      required: [query]
+      properties:
+        query:
+          type: string
+          minLength: 1
+          description: Natural-language question or search phrase.
+          examples: ["What is the refund policy for annual plans?"]
+        top_k:
+          type: integer
+          default: 5
+          minimum: 1
+          maximum: 20
+          description: Number of chunks to return.
+
+  - name: ingest_document
+    description: >
+      Upload a PDF, DOCX, TXT, or Markdown file into the knowledge base.
+      The file is chunked, embedded (text-embedding-3-small), and stored
+      in ChromaDB for retrieval by specialist agents.
+    http:
+      method: POST
+      path: /api/v1/knowledge/ingest
+      contentType: multipart/form-data
+    inputSchema:
+      type: object
+      required: [file]
+      properties:
+        file:
+          type: string
+          format: binary
+          description: Document file (PDF / DOCX / TXT / MD). Max 20 MB.
+        replace_existing:
+          type: boolean
+          default: true
+          description: Replace existing chunks if the same filename is already indexed.
+
+  - name: get_knowledge_base_stats
+    description: >
+      Return statistics about the ChromaDB knowledge base collection —
+      total chunks stored, unique documents, and embedding model.
+    http:
+      method: GET
+      path: /api/v1/knowledge/stats
+    inputSchema:
+      type: object
+      properties: {}
+
+# ---------------------------------------------------------------------------
+# Resources — readable data sources (read-only, no side effects)
+# ---------------------------------------------------------------------------
+resources:
+
+  - name: sample_transcripts
+    description: >
+      15 pre-built call transcript JSON files covering billing, technical,
+      account, general, and escalation categories. Use these with the
+      replay_transcript tool for evaluation and demos.
+    uri: "file://./data/sample_transcripts/"
+    mimeType: application/json
+
+  - name: openapi_spec
+    description: >
+      Full OpenAPI 3.1 specification for the ConversalQ REST API.
+      Available when the backend is running.
+    uri: "${CONVERSALQ_BASE_URL:-http://localhost:8000}/openapi.json"
+    mimeType: application/json
+
+# ---------------------------------------------------------------------------
+# Prompts — reusable templated prompts for MCP clients
+# ---------------------------------------------------------------------------
+prompts:
+
+  - name: evaluate_call
+    description: >
+      Replay a transcript and then score its quality — a two-step workflow
+      that combines replay_transcript and score_conversation_quality.
+    arguments:
+      - name: call_id
+        description: The CALL_NNN identifier of the sample transcript to evaluate.
+        required: true
+    template: |
+      1. Load the transcript for call {{call_id}} from data/sample_transcripts/.
+      2. Use the replay_transcript tool to replay all customer turns.
+      3. Use the score_conversation_quality tool on the returned conversation_id.
+      4. Summarise the QA scores and highlight any dimensions below 0.6.
+
+  - name: knowledge_qa
+    description: >
+      Answer a customer question using only the knowledge base (no live chat).
+    arguments:
+      - name: question
+        description: The customer's question.
+        required: true
+    template: |
+      Search the knowledge base for: "{{question}}"
+      Return the top 3 relevant passages and compose a clear, concise answer
+      citing the source document for each passage used.
+
+# ---------------------------------------------------------------------------
+# Shared schema components
+# ---------------------------------------------------------------------------
+components:
+  DimensionScore:
+    type: object
+    properties:
+      score:
+        type: number
+        minimum: 0
+        maximum: 1
+        description: Rubric score (0 = poor, 1 = excellent).
+      reasoning:
+        type: string
+        description: One-sentence explanation for the score.
