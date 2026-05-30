@@ -15,6 +15,37 @@ from pydantic import BaseModel, Field
 
 
 # ---------------------------------------------------------------------------
+# Audio upload / transcription schemas
+# ---------------------------------------------------------------------------
+
+class WordTimestamp(BaseModel):
+    """Single word with timing and confidence from Deepgram."""
+    word: str = Field(description="The recognised word.")
+    start: float = Field(description="Word start time in seconds.")
+    end: float = Field(description="Word end time in seconds.")
+    confidence: float = Field(ge=0.0, le=1.0, description="Per-word confidence score.")
+
+
+class AudioTranscriptionResponse(BaseModel):
+    """Response from POST /api/v1/voice/upload."""
+    transcript: str = Field(description="Full transcript text.")
+    confidence: float = Field(
+        ge=0.0, le=1.0,
+        description="Overall transcript confidence score (0 = low, 1 = high).",
+    )
+    duration_seconds: float = Field(description="Audio duration in seconds.")
+    words: List[WordTimestamp] = Field(
+        default_factory=list,
+        description="Word-level timestamps and confidence scores.",
+    )
+    filename: str = Field(description="Original uploaded filename.")
+    content_type: str = Field(description="Detected MIME type of the uploaded file.")
+    stt_available: bool = Field(
+        description="False when DEEPGRAM_API_KEY is not configured — transcript will be empty.",
+    )
+
+
+# ---------------------------------------------------------------------------
 # Twilio webhook documentation models
 # These are NOT used for FastAPI body parsing (Twilio sends form-encoded data).
 # They exist for OpenAPI documentation and internal type clarity.

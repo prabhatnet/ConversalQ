@@ -48,8 +48,10 @@ import structlog
 from fastapi import (
     APIRouter,
     Depends,
+    File,
     HTTPException,
     Request,
+    UploadFile,
     WebSocket,
     WebSocketDisconnect,
     status,
@@ -58,8 +60,14 @@ from fastapi.responses import Response
 
 from app.config import Settings, get_settings
 from app.dependencies import get_voice_service
-from app.schemas.voice import CallSessionResponse, VoiceSessionsResponse
+from app.schemas.voice import (
+    AudioTranscriptionResponse,
+    CallSessionResponse,
+    VoiceSessionsResponse,
+    WordTimestamp,
+)
 from app.services.voice_service import VoiceService
+from app.voice.stt import get_stt_service
 
 router = APIRouter()
 log = structlog.get_logger(__name__)
@@ -281,6 +289,107 @@ async def get_voice_session(
         created_at=session.created_at,
         updated_at=session.updated_at,
         transcript_log=session.transcript_log,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Audio file upload — transcribe via Deepgram pre-recorded API
+# ---------------------------------------------------------------------------
+
+_ALLOWED_AUDIO_TYPES: set[str] = {
+    "audio/wav", "audio/x-wav",
+    "audio/mpeg", "audio/mp3",
+    "audio/mp4", "audio/x-m4a", "audio/m4a",
+    "audio/ogg", "audio/webm",
+    "audio/flac", "audio/x-flac",
+    "audio/aac", "audio/x-aac",
+    "video/webm",   # browsers often label webm audio as video/webm
+}
+_MAX_AUDIO_BYTES = 25 * 1024 * 1024  # 25 MB
+
+
+@router.post(
+    "/upload",
+    response_model=AudioTranscriptionResponse,
+    summary="Transcribe an uploaded audio file",
+    description=(
+        "Upload a WAV, MP3, MP4, OGG, WEBM, or FLAC audio file and receive a "
+        "full transcript with word-level timestamps powered by Deepgram Nova-2. "
+        "Maximum file size: 25 MB. "
+        "When `DEEPGRAM_API_KEY` is not configured the endpoint returns an empty "
+        "transcript with `stt_available: false` instead of raising an error."
+    ),
+)
+async def upload_audio(
+    file: UploadFile = File(
+        ...,
+        description="Audio file to transcribe. Accepted: WAV / MP3 / MP4 / OGG / WEBM / FLAC.",
+    ),
+) -> AudioTranscriptionResponse:
+    filename = file.filename or "upload"
+    content_type = (file.content_type or "application/octet-stream").lower().split(";")[0].strip()
+
+    # --- Validate MIME type ---
+    if content_type not in _ALLOWED_AUDIO_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail=(
+                f"Unsupported media type '{content_type}'. "
+                f"Accepted types: {', '.join(sorted(_ALLOWED_AUDIO_TYPES))}."
+            ),
+        )
+
+    # --- Read and validate size ---
+    audio_bytes = await file.read()
+    if len(audio_bytes) > _MAX_AUDIO_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=f"File exceeds maximum size of {_MAX_AUDIO_BYTES // (1024 * 1024)} MB.",
+        )
+
+    log.info(
+        "audio_upload_received",
+        filename=filename,
+        content_type=content_type,
+        size_bytes=len(audio_bytes),
+    )
+
+    stt = get_stt_service()
+    result = await stt.transcribe_audio_file(
+        audio_bytes=audio_bytes,
+        mimetype=content_type,
+    )
+
+    # Parse word timestamps from Deepgram dicts
+    words: list[WordTimestamp] = []
+    for w in result.words:
+        try:
+            words.append(WordTimestamp(
+                word=w.get("word", ""),
+                start=float(w.get("start", 0)),
+                end=float(w.get("end", 0)),
+                confidence=float(w.get("confidence", 1.0)),
+            ))
+        except Exception:
+            pass
+
+    log.info(
+        "audio_upload_transcribed",
+        filename=filename,
+        transcript_length=len(result.transcript),
+        confidence=result.confidence,
+        duration_seconds=result.duration_seconds,
+        stt_available=stt.is_available,
+    )
+
+    return AudioTranscriptionResponse(
+        transcript=result.transcript,
+        confidence=result.confidence,
+        duration_seconds=result.duration_seconds,
+        words=words,
+        filename=filename,
+        content_type=content_type,
+        stt_available=stt.is_available,
     )
 
 

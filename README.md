@@ -62,7 +62,7 @@ npm run build
 
 | Service | URL | Description |
 |---|---|---|
-| React UI | http://localhost:5173 | Transcript replay interface |
+| React UI | http://localhost:5173 | Transcript Replay · Live Chat · Audio Upload tabs |
 | Backend API | http://localhost:8000 | FastAPI REST server |
 | Swagger UI | http://localhost:8000/docs | Interactive API explorer |
 | Health Check | http://localhost:8000/api/v1/health | Liveness probe |
@@ -77,7 +77,7 @@ npm run build
 | POST | `/api/v1/chat/replay` | Replay a full transcript JSON through the agent graph |
 | GET | `/api/v1/chat/{id}/history` | Retrieve full message history for a conversation |
 | GET | `/api/v1/chat/{id}/summary` | Retrieve the LLM-generated memory summary |
-| POST | `/api/v1/chat/{id}/qa-score` | Run the Quality Scoring Agent on a completed conversation |
+| POST | `/api/v1/chat/{id}/qa-score` | Run the QA Scoring Agent on a completed conversation |
 | PATCH | `/api/v1/chat/{id}/status` | Manually update conversation status |
 
 ### Knowledge Base
@@ -95,12 +95,13 @@ npm run build
 | GET | `/api/v1/agents` | List registered agents and their capabilities |
 | GET | `/api/v1/agents/graph` | Retrieve the agent graph topology |
 
-### Voice (Phase 5)
+### Voice
 | Method | Path | Description |
 |--------|------|-------------|
 | POST | `/api/v1/voice/inbound` | Twilio inbound call webhook — returns TwiML greeting |
 | POST | `/api/v1/voice/gather` | Twilio Gather webhook — processes speech, returns TwiML reply |
 | POST | `/api/v1/voice/status` | Twilio status callback — syncs call lifecycle |
+| POST | `/api/v1/voice/upload` | Upload an audio file (WAV/MP3/FLAC/OGG…) — returns Deepgram transcript |
 | GET | `/api/v1/voice/sessions` | List active call sessions (`?active_only=false` for all) |
 | GET | `/api/v1/voice/sessions/{call_sid}` | Get single call session by CallSid |
 | WS | `/api/v1/voice/stream/{call_sid}` | Twilio Media Stream — live Deepgram STT transcription |
@@ -192,6 +193,26 @@ curl.exe http://localhost:8000/api/v1/voice/sessions
 curl.exe http://localhost:8000/api/v1/voice/sessions/CA1234567890abcdef
 ```
 
+### QA Score a Conversation
+```powershell
+curl.exe -X POST http://localhost:8000/api/v1/chat/<conversation_id>/qa-score `
+  -H "Content-Type: application/json" `
+  -d '{"notes": null}'
+```
+
+Response includes four scored dimensions (empathy, tone, resolution, professionalism), LLM reasoning per dimension, overall score 0–100, and latency.
+
+### Transcribe an Audio File
+```powershell
+# Requires DEEPGRAM_API_KEY to be set in backend/.env
+curl.exe -X POST http://localhost:8000/api/v1/voice/upload `
+  -F "file=@data/sample_audio/sample_call_billing.wav"
+```
+
+Sample audio files are in `data/sample_audio/`. Accepted formats: WAV, MP3, MP4, M4A, OGG, WEBM, FLAC, AAC. Max 25 MB.
+
+> Tip: use the **Audio Upload** tab in the React UI at http://localhost:5173 for a drag-and-drop interface.
+
 ## Architecture
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for full system design.
@@ -203,12 +224,15 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for full system design.
 | Backend | Python 3.12, FastAPI 0.115, SQLAlchemy 2.0 |
 | AI Orchestration | LangGraph 1.2, LangChain OpenAI 1.2 |
 | LLM | OpenAI GPT-4o |
+| QA Scoring | GPT-4o function calling, 4-dimension rubric, Pydantic-enforced JSON schema |
 | Vector Store | ChromaDB (HTTP client) |
 | Database | PostgreSQL, Redis, ChromaDB |
 | Embeddings | OpenAI text-embedding-3-small |
 | Logging | structlog |
+| Tracing | LangSmith 0.3 (opt-in via `LANGSMITH_TRACING=true`) |
+| MCP | `mcp.yaml` — 7 tools, 2 resources, 2 prompts over HTTP transport |
 | Frontend | React 19, Vite 8, Tailwind CSS 4, lucide-react |
-| Voice | Twilio 9.4 (TwiML + webhook validation), Deepgram SDK 3.7 (live STT), OpenAI TTS |
+| Voice | Twilio 9.4 (TwiML + webhook validation), Deepgram SDK 3.7 (live STT + file upload), OpenAI TTS |
 | Observability | OpenTelemetry, Prometheus, Grafana |
 | Infrastructure | Docker, Kubernetes, GitHub Actions |
 
@@ -219,6 +243,10 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for full system design.
 - [x] Phase 3: Multi-Agent Orchestration (LangGraph)
 - [x] Phase 4: Memory + Session Handling
 - [x] Phase 5: Voice AI Integration (Twilio + Deepgram + OpenAI TTS)
+- [x] Phase 5+: QA Scoring Agent (GPT-4o function calling, 4-dimension rubric)
+- [x] Phase 5+: Audio File Upload (Deepgram pre-recorded API, drag-and-drop UI)
+- [x] Phase 5+: LangSmith Tracing (opt-in, zero-instrumentation)
+- [x] Phase 5+: MCP Server Declaration (mcp.yaml, 7 tools)
 - [ ] Phase 6: Observability + Analytics
 - [ ] Phase 7: Enterprise Security + RBAC
 - [ ] Phase 8: Cloud Deployment + Scaling

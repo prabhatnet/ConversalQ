@@ -1,8 +1,9 @@
 ﻿import { useState } from "react";
-import { Loader2, RotateCcw, FileSearch, MessageSquare } from "lucide-react";
+import { Loader2, Mic, RotateCcw, FileSearch, MessageSquare } from "lucide-react";
 import { TranscriptInput } from "./components/TranscriptInput";
 import { ReplayResults } from "./components/ReplayResults";
 import { LiveChat } from "./components/LiveChat";
+import { AudioUpload } from "./components/AudioUpload";
 import { replayTranscript, fetchSummary, fetchQAScore } from "./api/client";
 import type {
   TranscriptFile,
@@ -11,7 +12,7 @@ import type {
   QAScoreResponse,
 } from "./types";
 
-type Tab = "replay" | "chat";
+type Tab = "replay" | "chat" | "audio";
 
 export default function App() {
   const [tab, setTab] = useState<Tab>("replay");
@@ -74,6 +75,7 @@ export default function App() {
   const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
     { id: "replay", label: "Transcript Replay", icon: <FileSearch size={14} /> },
     { id: "chat",   label: "Live Chat",          icon: <MessageSquare size={14} /> },
+    { id: "audio",  label: "Audio Upload",       icon: <Mic size={14} /> },
   ];
 
   return (
@@ -155,6 +157,18 @@ export default function App() {
         )}
 
         {tab === "chat" && <LiveChat />}
+
+        {tab === "audio" && (
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-2xl font-bold text-slate-100">Audio Upload</h1>
+              <p className="text-sm text-slate-400 mt-1">
+                Upload a call recording and transcribe it with Deepgram Nova-2. Supports WAV, MP3, MP4, OGG, WEBM, and FLAC up to 25 MB.
+              </p>
+            </div>
+            <AudioUpload />
+          </div>
+        )}
       </main>
 
       <footer className="border-t border-slate-800 py-4 text-center text-xs text-slate-600">

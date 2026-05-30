@@ -86,3 +86,20 @@ export interface LiveChatMessage {
   latency_ms?: number;
 }
 
+export interface WordTimestamp {
+  word: string;
+  start: number;
+  end: number;
+  confidence: number;
+}
+
+export interface AudioTranscriptionResponse {
+  transcript: string;
+  confidence: number;
+  duration_seconds: number;
+  words: WordTimestamp[];
+  filename: string;
+  content_type: string;
+  stt_available: boolean;
+}
+

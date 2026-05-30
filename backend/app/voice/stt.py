@@ -152,6 +152,59 @@ class STTService:
             return TranscriptionResult(transcript="", confidence=0.0)
 
 
+    async def transcribe_audio_file(
+        self,
+        audio_bytes: bytes,
+        mimetype: str = "audio/wav",
+        language: str = "en-US",
+    ) -> TranscriptionResult:
+        """
+        Transcribe a complete audio file (WAV, MP3, MP4, OGG, WEBM, FLAC …).
+
+        Deepgram auto-detects encoding and sample-rate from container headers,
+        so ``encoding`` and ``sample_rate`` are intentionally omitted here.
+        """
+        if not self._available:
+            return TranscriptionResult(transcript="", confidence=0.0)
+
+        try:
+            from deepgram import DeepgramClient, PrerecordedOptions
+        except ImportError:
+            log.error("deepgram_sdk_not_installed", hint="pip install deepgram-sdk")
+            return TranscriptionResult(transcript="", confidence=0.0)
+
+        try:
+            client = DeepgramClient(api_key=self._api_key)
+            options = PrerecordedOptions(
+                model="nova-2",
+                smart_format=True,
+                language=language,
+                punctuate=True,
+                diarize=False,
+                utterances=False,
+            )
+            response = await client.listen.asyncrest.v("1").transcribe_file(
+                {"buffer": audio_bytes, "mimetype": mimetype},
+                options,
+            )
+            alt = response.results.channels[0].alternatives[0]
+            words = [w.to_dict() for w in (alt.words or [])]
+            duration = 0.0
+            try:
+                duration = float(response.metadata.duration or 0)
+            except Exception:
+                pass
+            return TranscriptionResult(
+                transcript=alt.transcript,
+                confidence=float(alt.confidence or 1.0),
+                words=words,
+                duration_seconds=duration,
+            )
+        except Exception as exc:
+            log.error("stt_transcribe_file_failed", error=str(exc))
+            return TranscriptionResult(transcript="", confidence=0.0)
+
+
 @lru_cache(maxsize=1)
 def get_stt_service() -> STTService:
     """Return a process-level singleton STTService."""

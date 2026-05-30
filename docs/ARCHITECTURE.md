@@ -47,10 +47,10 @@ ConversalQ is an enterprise-grade AI Call Center Assistant that orchestrates mul
 │  │  │Tech      │ │Sentiment │ │Escalation│ │ Compliance   │  │    │
 │  │  │Support   │ │Analyzer  │ │Agent     │ │ Monitor      │  │    │
 │  │  └──────────┘ └──────────┘ └──────────┘ └──────────────┘  │    │
-│  │  ┌──────────┐ ┌──────────────┐                              │    │
-│  │  │Summarizer│ │Recommendation│                              │    │
-│  │  │Agent     │ │Agent         │                              │    │
-│  │  └──────────┘ └──────────────┘                              │    │
+│  │  ┌──────────┐ ┌──────────────┐ ┌──────────────────────┐   │    │
+│  │  │Summarizer│ │Recommendation│ │QA Scoring Agent      │   │    │
+│  │  │Agent     │ │Agent         │ │(4-dimension rubric)  │   │    │
+│  │  └──────────┘ └──────────────┘ └──────────────────────┘   │    │
 │  └────────────────────────────────────────────────────────────┘    │
 └────────┬───────────────┬────────────────┬───────────────┬──────────┘
          │               │                │               │
@@ -147,6 +147,61 @@ ConversalQ is an enterprise-grade AI Call Center Assistant that orchestrates mul
 - New `.env` settings: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`, `TWILIO_WEBHOOK_BASE_URL`, `TWILIO_ESCALATION_NUMBER`, `DEEPGRAM_API_KEY`, `TTS_ENABLED`, `TTS_MODEL`, `TTS_VOICE`, `VOICE_LANGUAGE`, `VOICE_GREETING`, `VOICE_TIMEOUT`
 - New packages: `twilio==9.4.3`, `deepgram-sdk==3.7.7`
 
+### Phase 5 — Extended: QA Scoring Agent
+**Status: Complete**
+
+**Implemented:**
+- `agents/qa_scorer.py` — `QualityScoringAgent` uses GPT-4o with **function calling** (structured outputs) to score a completed conversation across four dimensions:
+  - **Empathy** — did the agent acknowledge the customer's feelings?
+  - **Tone** — professional, calm, and helpful throughout?
+  - **Resolution** — was the customer's issue actually resolved?
+  - **Professionalism** — proper greeting/closing, policy adherence?
+- Each dimension returns `{ score: 0–100, reasoning: "..." }` via Pydantic-enforced JSON schema
+- Overall score = weighted average of all four dimensions
+- Graceful fallback to neutral scores (50) if OpenAI call fails
+- `services/qa_service.py` — `QAService` retrieves the conversation history, calls `QualityScoringAgent`, and records latency
+- `schemas/qa.py` — `QAScoreRequest`, `QAScoreResponse`, `DimensionScore` Pydantic models
+- `POST /api/v1/chat/{id}/qa-score` — on-demand endpoint; optional `notes` field for supervisor context
+- **Frontend** — QA Score panel in Transcript Replay tab: color-coded dimension bars (emerald ≥86%, sky ≥70%, amber ≥50%, rose <50%), per-dimension LLM reasoning, re-run button, latency display
+
+### Phase 5 — Extended: Audio File Upload (Deepgram Pre-recorded)
+**Status: Complete**
+
+**Implemented:**
+- `voice/stt.py` — new `STTService.transcribe_audio_file(audio_bytes, mimetype)` method using Deepgram's asyncrest pre-recorded API; no `encoding`/`sample_rate` needed (container format auto-detected)
+- `POST /api/v1/voice/upload` — multipart file upload endpoint:
+  - Validates MIME type against 14 accepted audio types (WAV, MP3, MP4, OGG, WEBM, FLAC, AAC, video/webm)
+  - Enforces 25 MB maximum file size (HTTP 413)
+  - Returns `AudioTranscriptionResponse` with `transcript`, `confidence`, `duration_seconds`, `words[]` (word-level timestamps), `filename`, `content_type`, `stt_available`
+  - When `DEEPGRAM_API_KEY` is unset, returns empty transcript with `stt_available: false` instead of raising
+- `schemas/voice.py` — new `WordTimestamp` and `AudioTranscriptionResponse` schemas
+- **Frontend** — dedicated **Audio Upload** tab with drag-and-drop zone, upload progress state, transcript result panel with confidence/duration header and collapsible word timestamp chips
+- `data/sample_audio/` — two speech WAV files generated with Windows TTS for local testing:
+  - `sample_call_billing.wav` — duplicate charge → refund scenario
+  - `sample_call_technical.wav` — password reset / login issue scenario
+
+### Phase 5 — Extended: LangSmith Tracing
+**Status: Complete**
+
+**Implemented:**
+- `config.py` — four new settings: `langsmith_tracing` (bool), `langsmith_api_key`, `langsmith_project` (default `conversalq`), `langsmith_endpoint`
+- `main.py` lifespan — sets `LANGCHAIN_TRACING_V2`, `LANGCHAIN_API_KEY`, `LANGCHAIN_PROJECT`, `LANGCHAIN_ENDPOINT` in `os.environ` at startup; explicitly sets `LANGCHAIN_TRACING_V2=false` when disabled
+- `requirements.txt` — added `langsmith==0.3.45`
+- `.env` — `LANGSMITH_TRACING=false` with placeholder key (flip to `true` + real key to enable)
+- When enabled: every LangGraph invocation, every LLM call, and every RAG retrieval is automatically traced to the LangSmith project with full input/output payloads, token counts, and latency
+
+### Phase 5 — Extended: MCP Server Declaration
+**Status: Complete**
+
+**Implemented:**
+- `mcp.yaml` (project root) — declarative Model Context Protocol server configuration:
+  - Transport: HTTP, `base_url` configurable via `CONVERSALQ_BASE_URL` env var
+  - **7 tools**: `send_message`, `get_conversation_history`, `get_conversation_summary`, `update_conversation_status`, `score_conversation_quality`, `replay_transcript`, `search_knowledge_base`, `ingest_document`, `get_knowledge_base_stats`
+  - **2 resources**: `sample_transcripts` (file-based), `openapi_spec` (live)
+  - **2 prompts**: `evaluate_call`, `knowledge_qa`
+  - Shared component schema: `DimensionScore`
+- Enables AI agents and IDE tools (Copilot, Cursor) to call ConversalQ endpoints as first-class MCP tools
+
 ### Phase 6: Observability + Analytics
 **Objectives:**
 - OpenTelemetry instrumentation
@@ -228,15 +283,17 @@ ConversalQ/
 │   │   │   ├── memory_service.py    # Phase 4: sliding-window + LLM summarization
 │   │   │   ├── knowledge_service.py # Phase 2: RAG document management
 │   │   │   ├── voice_service.py     # Phase 5: Twilio webhooks → agent graph → TwiML
+│   │   │   ├── qa_service.py        # Phase 5+: QA scoring orchestration
 │   │   │   └── llm_service.py      # Phase 1: LLM abstraction (legacy)
 │   │   │
-│   │   ├── agents/                 # AI Agent definitions (Phase 3)
+│   │   ├── agents/                 # AI Agent definitions (Phase 3+)
 │   │   │   ├── __init__.py
 │   │   │   ├── graph.py            # LangGraph StateGraph compilation
 │   │   │   ├── state.py            # AgentState TypedDict
 │   │   │   ├── router.py           # Intent classification node
 │   │   │   ├── specialists.py      # 5 specialist agent nodes
-│   │   │   └── orchestration.py    # AgentOrchestrationService
+│   │   │   ├── orchestration.py    # AgentOrchestrationService
+│   │   │   └── qa_scorer.py        # QualityScoringAgent (4-dimension rubric)
 │   │   │
 │   │   ├── models/                 # Database models (SQLAlchemy)
 │   │   │   ├── __init__.py
@@ -250,7 +307,8 @@ ConversalQ/
 │   │   ├── schemas/                # Pydantic schemas
 │   │   │   ├── __init__.py
 │   │   │   ├── chat.py
-│   │   │   ├── voice.py
+│   │   │   ├── voice.py            # + WordTimestamp, AudioTranscriptionResponse
+│   │   │   ├── qa.py               # QAScoreRequest/Response, DimensionScore
 │   │   │   ├── conversation.py
 │   │   │   ├── user.py
 │   │   │   └── common.py
@@ -270,11 +328,11 @@ ConversalQ/
 │   │   │   ├── retriever.py
 │   │   │   └── vector_store.py
 │   │   │
-│   │   ├── voice/                  # Voice AI pipeline (Phase 5)
+│   │   ├── voice/                  # Voice AI pipeline (Phase 5+)
 │   │   │   ├── __init__.py
 │   │   │   ├── call_session.py     # Module-level CallSid → CallSession store
 │   │   │   ├── twiml_handler.py    # TwiMLBuilder + clean_for_speech()
-│   │   │   ├── stt.py              # Deepgram STT (pre-recorded + live stream)
+│   │   │   ├── stt.py              # Deepgram STT (pre-recorded + live + file upload)
 │   │   │   └── tts.py              # OpenAI TTS (opt-in upgrade over <Say>)
 │   │   │
 │   │   ├── observability/          # Monitoring & telemetry
@@ -310,7 +368,17 @@ ConversalQ/
 │   ├── Dockerfile
 │   └── .env.example
 │
-├── frontend/                       # React/Next.js (Phase 4+)
+├── frontend/                       # React 19 + Vite 8 + Tailwind CSS 4
+│   ├── src/
+│   │   ├── App.tsx                 # 3-tab shell: Transcript Replay / Live Chat / Audio Upload
+│   │   ├── api/client.ts           # Typed fetch wrappers for all backend endpoints
+│   │   ├── types/index.ts          # Shared TypeScript interfaces
+│   │   └── components/
+│   │       ├── TranscriptInput.tsx # JSON transcript file picker + upload
+│   │       ├── ReplayResults.tsx   # Per-turn agent breakdown + summary + QA panel
+│   │       ├── QAScorePanel.tsx    # 4-dimension score bars with LLM reasoning
+│   │       ├── LiveChat.tsx        # Real-time chat with streaming support
+│   │       └── AudioUpload.tsx     # Drag-and-drop audio upload → Deepgram transcript
 │   └── ...
 │
 ├── infra/                          # Infrastructure
@@ -336,6 +404,13 @@ ConversalQ/
 │       ├── ci.yml
 │       └── deploy.yml
 │
+├── data/
+│   ├── sample_transcripts/         # 15 annotated call JSON files (CALL_001–015)
+│   └── sample_audio/               # WAV files for audio upload testing
+│       ├── sample_call_billing.wav  # Duplicate charge → refund (TTS-generated)
+│       └── sample_call_technical.wav # Password reset / login issue (TTS-generated)
+│
+├── mcp.yaml                        # MCP server declaration (7 tools, 2 resources, 2 prompts)
 ├── .env.example
 ├── .gitignore
 ├── .dockerignore
@@ -447,7 +522,7 @@ CREATE TABLE audit_logs (
 - "The summary is injected into both the router (for accurate re-routing in long sessions) and specialist agents (for conversational continuity)"
 - "Conversation status transitions automatically — active → escalated when the escalation agent fires; agents or operators can also manually resolve/close via PATCH endpoint"
 
-### Phase 5
+### Phase 5 — Voice AI
 - "I designed a two-path voice architecture: the primary Gather path uses Twilio's built-in STT (zero extra cost, just text in the webhook) and the secondary WebSocket path streams mulaw audio to Deepgram for real-time transcript analytics"
 - "Every voice call is backed by a full ConversalQ conversation — the same sliding-window memory, LLM summarization, and history/summary endpoints that work for chat also work for phone calls with no extra code"
 - "TwiML generation uses a builder pattern with a `clean_for_speech()` sanitizer that strips markdown before text hits `<Say>`, preventing Twilio from reading out asterisks and hash signs"
@@ -455,6 +530,23 @@ CREATE TABLE audit_logs (
 - "Webhook security uses HMAC-SHA1 signature validation via `twilio.request_validator`, toggled by `TWILIO_VALIDATE_WEBHOOKS` — off locally, on in production"
 - "The call session store uses the same module-level singleton dictionary pattern as the in-memory conversation repos, so sessions persist for the process lifetime without a Redis dependency"
 - "Escalation on voice mirrors the chat path — when `should_escalate=True` the service returns escalation TwiML that optionally dials a transfer number via `<Dial>`"
+
+### Phase 5 Extended — QA Scoring
+- "The QA Scoring Agent uses GPT-4o function calling with a strict JSON schema — this guarantees structured output without post-processing regex hacks, even if the model is verbose"
+- "I chose four dimensions (empathy, tone, resolution, professionalism) because they map directly to real call center KPIs; supervisors can see not just the score but the LLM's reasoning for each dimension"
+- "Scoring is on-demand, not automatic — the supervisor clicks 'Run QA Score' after a replay rather than running it on every turn, keeping API costs proportional to actual usage"
+- "The fallback to neutral scores (50) means a failed OpenAI call doesn't break the supervisor's workflow — they see a soft warning rather than a 500 error"
+
+### Phase 5 Extended — Audio File Upload
+- "The audio upload endpoint accepts 14 MIME types and uses Deepgram's pre-recorded API with just buffer + mimetype — no encoding or sample-rate parameters needed because Deepgram auto-detects them from the container headers"
+- "I separated `transcribe_bytes()` (for Twilio's raw mulaw stream) from `transcribe_audio_file()` (for container formats) because they require different PrerecordedOptions — passing encoding to a WAV file causes Deepgram to reject it"
+- "Graceful degradation is a first-class design goal: every STT method returns an empty TranscriptionResult with `stt_available: false` rather than raising, so the endpoint is safe to demo even without a Deepgram key"
+- "The frontend word timestamp chips use a `<details>` element so the panel stays compact for short files but lets you drill into timing data for longer calls"
+
+### Phase 5 Extended — LangSmith + MCP
+- "LangSmith tracing is configured entirely through env vars at startup — no decorators or instrumentation code in the agent graph itself, because LangChain/LangGraph auto-detects the `LANGCHAIN_TRACING_V2` flag"
+- "I used `mcp.yaml` rather than a running MCP proxy because the declarative format is enough for IDE tools like Copilot and Cursor to discover and call the endpoints directly, without a sidecar process"
+- "The MCP config maps all 9 REST endpoints as named tools with typed parameters, which means an AI agent using the MCP client can orchestrate ConversalQ end-to-end — send a message, score the conversation, search the knowledge base — all in one agentic workflow"
 
 ---
 

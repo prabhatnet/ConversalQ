@@ -1,4 +1,4 @@
-import type { TranscriptFile, TranscriptReplayResponse, ChatRequest, ChatResponse, ConversationSummaryResponse, QAScoreResponse } from '../types';
+import type { TranscriptFile, TranscriptReplayResponse, ChatRequest, ChatResponse, ConversationSummaryResponse, QAScoreResponse, AudioTranscriptionResponse } from '../types';
 
 const BASE = '/api/v1';
 
@@ -55,5 +55,12 @@ export async function fetchQAScore(conversationId: string, notes?: string): Prom
     body: JSON.stringify({ notes: notes ?? null }),
   });
   return handleResponse<QAScoreResponse>(res);
+}
+
+export async function uploadAudio(file: File): Promise<AudioTranscriptionResponse> {
+  const form = new FormData();
+  form.append('file', file);
+  const res = await fetch(`${BASE}/voice/upload`, { method: 'POST', body: form });
+  return handleResponse<AudioTranscriptionResponse>(res);
 }
 
