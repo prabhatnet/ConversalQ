@@ -87,6 +87,12 @@ class Settings(BaseSettings):
     twilio_validate_webhooks: bool = Field(default=False, description="Validate X-Twilio-Signature (enable in production)")
     twilio_escalation_number: str = Field(default="", description="Phone number to dial for human agent escalation")
 
+    # --- LangSmith Observability ---
+    langsmith_tracing: bool = Field(default=False, description="Enable LangSmith trace logging (set LANGSMITH_TRACING=true)")
+    langsmith_api_key: str = Field(default="", description="LangSmith API key from smith.langchain.com")
+    langsmith_project: str = Field(default="conversalq", description="LangSmith project name for grouping traces")
+    langsmith_endpoint: str = Field(default="https://api.smith.langchain.com", description="LangSmith API endpoint")
+
     # --- Deepgram (Phase 5) ---
     deepgram_api_key: str = Field(default="", description="Deepgram API key for real-time STT via WebSocket media streams")
 

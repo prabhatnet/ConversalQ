@@ -71,3 +71,8 @@ langchain-core==1.4.0
 # =============================================================================
 twilio==9.4.3           # TwiML generation + X-Twilio-Signature webhook validation
 deepgram-sdk==3.7.7     # Real-time STT for WebSocket media stream path
+
+# =============================================================================
+# Observability
+# =============================================================================
+langsmith==0.3.45        # LangSmith tracing SDK (also a transitive dep of langchain-core)

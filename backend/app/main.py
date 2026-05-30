@@ -9,6 +9,7 @@ Architecture Decision:
 """
 
 import logging
+import os
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
@@ -31,6 +32,25 @@ logger = structlog.get_logger(__name__)
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Application lifespan — manages startup and shutdown resources."""
     configure_logging(settings.log_level)
+
+    # --- LangSmith tracing ---
+    # LangChain/LangGraph read these env vars before every traced call,
+    # so they must be set before the first agent invocation.
+    if settings.langsmith_tracing and settings.langsmith_api_key:
+        os.environ["LANGCHAIN_TRACING_V2"] = "true"
+        os.environ["LANGCHAIN_API_KEY"] = settings.langsmith_api_key
+        os.environ["LANGCHAIN_PROJECT"] = settings.langsmith_project
+        os.environ["LANGCHAIN_ENDPOINT"] = settings.langsmith_endpoint
+        logger.info(
+            "langsmith_tracing_enabled",
+            project=settings.langsmith_project,
+            endpoint=settings.langsmith_endpoint,
+        )
+    else:
+        # Explicitly disable in case the var leaked from a parent process
+        os.environ["LANGCHAIN_TRACING_V2"] = "false"
+        logger.info("langsmith_tracing_disabled")
+
     await on_startup(settings)
     logger.info(
         "application_started",
