@@ -8,68 +8,53 @@
 
 ConversalQ is an enterprise-grade AI Call Center Assistant that orchestrates multiple specialized AI agents to automate customer support operations. The system uses multi-agent orchestration (LangGraph), RAG pipelines, conversational memory, voice AI, sentiment analysis, and intelligent escalation workflows.
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                        CLIENT LAYER                                 │
-│  ┌──────────┐  ┌──────────────┐  ┌──────────┐  ┌───────────────┐  │
-│  │ React UI │  │ Voice Client │  │ Admin UI │  │ Analytics UI  │  │
-│  └─────┬────┘  └──────┬───────┘  └─────┬────┘  └───────┬───────┘  │
-└────────┼───────────────┼────────────────┼───────────────┼──────────┘
-         │               │                │               │
-┌────────▼───────────────▼────────────────▼───────────────▼──────────┐
-│                      API GATEWAY LAYER                              │
-│  ┌──────────────────────────────────────────────────────────────┐  │
-│  │  FastAPI Application (ASGI)                                   │  │
-│  │  • Authentication / JWT                                       │  │
-│  │  • Rate Limiting                                              │  │
-│  │  • Request Routing                                            │  │
-│  │  • CORS / Security Headers                                    │  │
-│  └──────────────────────────────────────────────────────────────┘  │
-└────────┬───────────────┬────────────────┬───────────────┬──────────┘
-         │               │                │               │
-┌────────▼───────────────▼────────────────▼───────────────▼──────────┐
-│                     SERVICE LAYER                                   │
-│  ┌──────────┐  ┌──────────────┐  ┌───────────┐  ┌─────────────┐  │
-│  │ Chat     │  │ Voice        │  │ Analytics │  │ Admin       │  │
-│  │ Service  │  │ Service      │  │ Service   │  │ Service     │  │
-│  └─────┬────┘  └──────┬───────┘  └─────┬─────┘  └──────┬──────┘  │
-└────────┼───────────────┼────────────────┼───────────────┼──────────┘
-         │               │                │               │
-┌────────▼───────────────▼────────────────▼───────────────▼──────────┐
-│                  ORCHESTRATION LAYER (LangGraph)                    │
-│  ┌────────────────────────────────────────────────────────────┐    │
-│  │  Agent Supervisor / Router                                  │    │
-│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────────┐  │    │
-│  │  │ Intent   │ │ Customer │ │Knowledge │ │ Billing      │  │    │
-│  │  │ Detector │ │ Verifier │ │Base Agent│ │ Agent        │  │    │
-│  │  └──────────┘ └──────────┘ └──────────┘ └──────────────┘  │    │
-│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────────┐  │    │
-│  │  │Tech      │ │Sentiment │ │Escalation│ │ Compliance   │  │    │
-│  │  │Support   │ │Analyzer  │ │Agent     │ │ Monitor      │  │    │
-│  │  └──────────┘ └──────────┘ └──────────┘ └──────────────┘  │    │
-│  │  ┌──────────┐ ┌──────────────┐ ┌──────────────────────┐   │    │
-│  │  │Summarizer│ │Recommendation│ │QA Scoring Agent      │   │    │
-│  │  │Agent     │ │Agent         │ │(4-dimension rubric)  │   │    │
-│  │  └──────────┘ └──────────────┘ └──────────────────────┘   │    │
-│  └────────────────────────────────────────────────────────────┘    │
-└────────┬───────────────┬────────────────┬───────────────┬──────────┘
-         │               │                │               │
-┌────────▼───────────────▼────────────────▼───────────────▼──────────┐
-│                     DATA LAYER                                      │
-│  ┌───────────┐  ┌──────────┐  ┌───────────┐  ┌────────────────┐  │
-│  │PostgreSQL │  │  Redis   │  │ ChromaDB  │  │ File Storage   │  │
-│  │(Primary)  │  │ (Cache/  │  │ (Vector   │  │ (Documents)    │  │
-│  │           │  │  Session)│  │  Store)   │  │                │  │
-│  └───────────┘  └──────────┘  └───────────┘  └────────────────┘  │
-└───────────────────────────────────────────────────────────────────┘
-         │               │                │
-┌────────▼───────────────▼────────────────▼─────────────────────────┐
-│                  OBSERVABILITY LAYER                                │
-│  ┌────────────────┐  ┌────────────┐  ┌────────────────────────┐  │
-│  │ OpenTelemetry  │  │ Prometheus │  │ Grafana Dashboards     │  │
-│  │ (Traces/Logs)  │  │ (Metrics)  │  │ (Visualization)        │  │
-│  └────────────────┘  └────────────┘  └────────────────────────┘  │
-└───────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph CLIENT["CLIENT LAYER"]
+        UI["React UI (Vite + TypeScript)\n• Transcript Replay tab\n• Live Chat tab\n• Audio Upload tab"]
+        TWILIO["Twilio / MCP clients\n• Inbound calls\n• Media streams"]
+    end
+
+    subgraph API["API GATEWAY — FastAPI (ASGI)"]
+        GW["Request Routing · CORS · structlog\n/api/v1/chat   /api/v1/voice\n/api/v1/knowledge   /api/v1/agents   /api/v1/health"]
+    end
+
+    subgraph SERVICES["SERVICE LAYER"]
+        CS["Chat + Memory Service"]
+        VS["Voice Service\n(Twilio webhooks + Deepgram)"]
+        KS["Knowledge Service\n(RAG pipeline)"]
+        QS["QA Service"]
+    end
+
+    subgraph ORCH["ORCHESTRATION — LangGraph StateGraph"]
+        R["Router Node\nLLM intent classifier\nbilling / technical / account / general / escalation"]
+        B["Billing Agent"]
+        T["Technical Support Agent"]
+        A["Account Agent"]
+        G["General Agent"]
+        E["Escalation Agent"]
+        QA["QA Scoring Agent\nGPT-4o function calling\nempathy · tone · resolution · professionalism"]
+    end
+
+    subgraph DATA["DATA LAYER"]
+        MEM["In-memory repos\n(Conversations + Messages)\ndefault for local dev"]
+        CHROMA["ChromaDB (HTTP)\nVector store for RAG"]
+        FS["Filesystem\nDocuments + Audio samples"]
+        PG["PostgreSQL + Redis\n(models wired, env-ready)"]
+    end
+
+    subgraph OBS["OBSERVABILITY"]
+        LOG["structlog\nstructured JSON logs + request IDs"]
+        LS["LangSmith (opt-in)\nLANGSMITH_TRACING=true/false"]
+    end
+
+    CLIENT --> API
+    API --> SERVICES
+    CS --> ORCH
+    VS --> ORCH
+    R --> B & T & A & G & E
+    SERVICES --> DATA
+    DATA --> OBS
 ```
 
 ---
@@ -237,183 +222,123 @@ ConversalQ is an enterprise-grade AI Call Center Assistant that orchestrates mul
 
 ---
 
-## 3. Folder Structure (Full Project)
+## 3. Folder Structure
 
 ```
 ConversalQ/
-├── docs/                           # Documentation
-│   ├── ARCHITECTURE.md
-│   ├── API.md
-│   ├── DEPLOYMENT.md
-│   └── AGENTS.md
+├── docs/
+│   └── ARCHITECTURE.md
 ├── backend/
 │   ├── app/
-│   │   ├── __init__.py
-│   │   ├── main.py                 # FastAPI application entry point
-│   │   ├── config.py               # Application configuration
-│   │   ├── dependencies.py         # Dependency injection
+│   │   ├── main.py                 # FastAPI entry point; sets LangSmith env vars in lifespan
+│   │   ├── config.py               # Pydantic Settings (OpenAI, Deepgram, Twilio, LangSmith…)
+│   │   ├── dependencies.py         # FastAPI Depends() providers
 │   │   │
-│   │   ├── api/                    # API layer (routers)
-│   │   │   ├── __init__.py
-│   │   │   ├── v1/
-│   │   │   │   ├── __init__.py
-│   │   │   │   ├── router.py       # V1 API router aggregator
-│   │   │   │   ├── chat.py         # Chat endpoints
-│   │   │   │   ├── voice.py        # Voice endpoints
-│   │   │   │   ├── knowledge.py    # Knowledge base endpoints
-│   │   │   │   ├── analytics.py    # Analytics endpoints
-│   │   │   │   ├── admin.py        # Admin endpoints
-│   │   │   │   └── health.py       # Health check endpoints
-│   │   │   └── middleware/
-│   │   │       ├── __init__.py
-│   │   │       ├── cors.py
-│   │   │       ├── rate_limiter.py
-│   │   │       ├── request_id.py
-│   │   │       └── error_handler.py
+│   │   ├── api/v1/
+│   │   │   ├── router.py           # Aggregates all v1 sub-routers
+│   │   │   ├── chat.py             # Chat · replay · history · summary · qa-score · status
+│   │   │   ├── voice.py            # Twilio webhooks · audio upload · sessions · WS stream
+│   │   │   ├── knowledge.py        # Document ingest / search / list / delete
+│   │   │   ├── agents.py           # Agent graph introspection
+│   │   │   └── health.py           # Liveness probe
 │   │   │
-│   │   ├── core/                   # Core business logic
-│   │   │   ├── __init__.py
-│   │   │   ├── exceptions.py       # Custom exceptions
-│   │   │   ├── security.py         # Auth utilities
-│   │   │   └── events.py           # Application lifecycle events
+│   │   ├── agents/
+│   │   │   ├── graph.py            # LangGraph StateGraph compilation (@lru_cache)
+│   │   │   ├── state.py            # AgentState TypedDict + add_messages reducer
+│   │   │   ├── router.py           # Intent classification node (LLM + confidence scoring)
+│   │   │   ├── specialists.py      # 5 specialist nodes via factory (_make_specialist_node)
+│   │   │   ├── orchestration.py    # AgentOrchestrationService (RAG prefetch + graph invoke)
+│   │   │   └── qa_scorer.py        # QualityScoringAgent (GPT-4o function calling, 4-dim)
 │   │   │
-│   │   ├── services/               # Service layer
-│   │   │   ├── __init__.py
-│   │   │   ├── chat_service.py      # Phase 1-4: chat orchestration, memory, status
-│   │   │   ├── memory_service.py    # Phase 4: sliding-window + LLM summarization
-│   │   │   ├── knowledge_service.py # Phase 2: RAG document management
-│   │   │   ├── voice_service.py     # Phase 5: Twilio webhooks → agent graph → TwiML
-│   │   │   ├── qa_service.py        # Phase 5+: QA scoring orchestration
-│   │   │   └── llm_service.py      # Phase 1: LLM abstraction (legacy)
+│   │   ├── services/
+│   │   │   ├── chat_service.py      # Message processing, memory injection, status lifecycle
+│   │   │   ├── memory_service.py    # Sliding-window context + LLM rolling summarization
+│   │   │   ├── knowledge_service.py # RAG pipeline orchestration
+│   │   │   ├── voice_service.py     # Twilio call session → agent graph → TwiML
+│   │   │   ├── qa_service.py        # QA scoring orchestration
+│   │   │   └── llm_service.py       # Direct LLM wrapper (legacy)
 │   │   │
-│   │   ├── agents/                 # AI Agent definitions (Phase 3+)
-│   │   │   ├── __init__.py
-│   │   │   ├── graph.py            # LangGraph StateGraph compilation
-│   │   │   ├── state.py            # AgentState TypedDict
-│   │   │   ├── router.py           # Intent classification node
-│   │   │   ├── specialists.py      # 5 specialist agent nodes
-│   │   │   ├── orchestration.py    # AgentOrchestrationService
-│   │   │   └── qa_scorer.py        # QualityScoringAgent (4-dimension rubric)
+│   │   ├── repositories/
+│   │   │   ├── base.py              # Abstract repository interface
+│   │   │   ├── conversation_repo.py # SQLAlchemy-backed conversation repo
+│   │   │   ├── message_repo.py      # SQLAlchemy-backed message repo
+│   │   │   └── in_memory.py         # In-memory repos (default, no DB required)
 │   │   │
-│   │   ├── models/                 # Database models (SQLAlchemy)
-│   │   │   ├── __init__.py
-│   │   │   ├── base.py
-│   │   │   ├── conversation.py
-│   │   │   ├── message.py
-│   │   │   ├── user.py
-│   │   │   ├── customer.py
-│   │   │   └── audit_log.py
+│   │   ├── models/
+│   │   │   ├── base.py              # SQLAlchemy declarative base
+│   │   │   ├── conversation.py      # Conversation ORM model
+│   │   │   └── message.py           # Message ORM model
 │   │   │
-│   │   ├── schemas/                # Pydantic schemas
-│   │   │   ├── __init__.py
-│   │   │   ├── chat.py
-│   │   │   ├── voice.py            # + WordTimestamp, AudioTranscriptionResponse
-│   │   │   ├── qa.py               # QAScoreRequest/Response, DimensionScore
-│   │   │   ├── conversation.py
-│   │   │   ├── user.py
-│   │   │   └── common.py
+│   │   ├── schemas/
+│   │   │   ├── chat.py              # ChatRequest/Response, ConversationSummaryResponse
+│   │   │   ├── voice.py             # Twilio webhook docs + AudioTranscriptionResponse
+│   │   │   ├── qa.py                # QAScoreRequest/Response, DimensionScore
+│   │   │   ├── knowledge.py         # Ingest/search/stats schemas
+│   │   │   └── common.py            # Shared base types
 │   │   │
-│   │   ├── repositories/           # Data access layer
-│   │   │   ├── __init__.py
-│   │   │   ├── base.py
-│   │   │   ├── conversation_repo.py
-│   │   │   ├── message_repo.py
-│   │   │   └── user_repo.py
+│   │   ├── rag/
+│   │   │   ├── ingestion.py         # PDF / TXT / Markdown loader
+│   │   │   ├── chunking.py          # Recursive token-accurate chunker (tiktoken)
+│   │   │   ├── embeddings.py        # OpenAI embeddings + SHA-256 in-process cache
+│   │   │   ├── retriever.py         # Semantic similarity retrieval
+│   │   │   └── vector_store.py      # ChromaDB HTTP client wrapper
 │   │   │
-│   │   ├── rag/                    # RAG pipeline
-│   │   │   ├── __init__.py
-│   │   │   ├── ingestion.py
-│   │   │   ├── embeddings.py
-│   │   │   ├── chunking.py
-│   │   │   ├── retriever.py
-│   │   │   └── vector_store.py
+│   │   ├── voice/
+│   │   │   ├── call_session.py      # Module-level CallSid → CallSession in-memory store
+│   │   │   ├── twiml_handler.py     # TwiMLBuilder + clean_for_speech() markdown sanitizer
+│   │   │   ├── stt.py               # Deepgram: transcribe_url / transcribe_bytes / transcribe_audio_file
+│   │   │   └── tts.py               # OpenAI TTS (opt-in; default is Twilio <Say>)
 │   │   │
-│   │   ├── voice/                  # Voice AI pipeline (Phase 5+)
-│   │   │   ├── __init__.py
-│   │   │   ├── call_session.py     # Module-level CallSid → CallSession store
-│   │   │   ├── twiml_handler.py    # TwiMLBuilder + clean_for_speech()
-│   │   │   ├── stt.py              # Deepgram STT (pre-recorded + live + file upload)
-│   │   │   └── tts.py              # OpenAI TTS (opt-in upgrade over <Say>)
+│   │   ├── core/
+│   │   │   ├── exceptions.py        # Custom exception hierarchy
+│   │   │   └── events.py            # Application lifecycle event hooks
 │   │   │
-│   │   ├── observability/          # Monitoring & telemetry
-│   │   │   ├── __init__.py
-│   │   │   ├── tracing.py
-│   │   │   ├── metrics.py
-│   │   │   └── logging.py
+│   │   ├── observability/
+│   │   │   └── logging.py           # structlog configuration (JSON + request IDs)
 │   │   │
-│   │   └── db/                     # Database utilities
-│   │       ├── __init__.py
-│   │       ├── session.py          # Async session factory
-│   │       └── migrations/         # Alembic migrations
-│   │           ├── env.py
-│   │           └── versions/
+│   │   └── db/
+│   │       ├── session.py           # Async SQLAlchemy session factory
+│   │       └── migrations/          # Alembic migrations
 │   │
-│   ├── tests/
-│   │   ├── __init__.py
-│   │   ├── conftest.py
-│   │   ├── unit/
-│   │   │   ├── __init__.py
-│   │   │   ├── test_chat_service.py
-│   │   │   └── test_llm_service.py
-│   │   ├── integration/
-│   │   │   ├── __init__.py
-│   │   │   └── test_chat_api.py
-│   │   └── e2e/
-│   │       └── __init__.py
-│   │
-│   ├── alembic.ini
-│   ├── pyproject.toml
 │   ├── requirements.txt
-│   ├── requirements-dev.txt
 │   ├── Dockerfile
 │   └── .env.example
 │
-├── frontend/                       # React 19 + Vite 8 + Tailwind CSS 4
+├── frontend/
 │   ├── src/
 │   │   ├── App.tsx                 # 3-tab shell: Transcript Replay / Live Chat / Audio Upload
 │   │   ├── api/client.ts           # Typed fetch wrappers for all backend endpoints
 │   │   ├── types/index.ts          # Shared TypeScript interfaces
 │   │   └── components/
-│   │       ├── TranscriptInput.tsx # JSON transcript file picker + upload
-│   │       ├── ReplayResults.tsx   # Per-turn agent breakdown + summary + QA panel
+│   │       ├── TranscriptInput.tsx # JSON transcript file picker
+│   │       ├── ReplayResults.tsx   # Per-turn breakdown + summary + QA score panel
 │   │       ├── QAScorePanel.tsx    # 4-dimension score bars with LLM reasoning
-│   │       ├── LiveChat.tsx        # Real-time chat with streaming support
-│   │       └── AudioUpload.tsx     # Drag-and-drop audio upload → Deepgram transcript
-│   └── ...
-│
-├── infra/                          # Infrastructure
-│   ├── docker-compose.yml
-│   ├── docker-compose.dev.yml
-│   ├── prometheus/
-│   │   └── prometheus.yml
-│   ├── grafana/
-│   │   └── dashboards/
-│   └── k8s/
-│       ├── namespace.yml
-│       ├── deployment.yml
-│       ├── service.yml
-│       └── configmap.yml
-│
-├── scripts/                        # Utility scripts
-│   ├── seed_db.py
-│   ├── ingest_docs.py
-│   └── healthcheck.sh
-│
-├── .github/
-│   └── workflows/
-│       ├── ci.yml
-│       └── deploy.yml
+│   │       ├── AudioUpload.tsx     # Drag-and-drop audio upload → Deepgram transcript
+│   │       ├── LiveChat.tsx        # Real-time chat
+│   │       ├── TurnCard.tsx        # Single replay turn card
+│   │       ├── SummaryPanel.tsx    # LLM memory summary display
+│   │       ├── MetadataPanel.tsx   # Call metadata display
+│   │       ├── StatusControls.tsx  # Conversation status transition buttons
+│   │       ├── ConfidenceBar.tsx   # Confidence score visualisation
+│   │       ├── IntentBadge.tsx     # Intent label badge
+│   │       └── ChatMessage.tsx     # Chat bubble component
+│   ├── vite.config.ts              # Dev proxy: /api → http://localhost:8000
+│   └── package.json
 │
 ├── data/
 │   ├── sample_transcripts/         # 15 annotated call JSON files (CALL_001–015)
 │   └── sample_audio/               # WAV files for audio upload testing
-│       ├── sample_call_billing.wav  # Duplicate charge → refund (TTS-generated)
-│       └── sample_call_technical.wav # Password reset / login issue (TTS-generated)
+│       ├── sample_call_billing.wav     # Duplicate charge → refund (Windows TTS)
+│       ├── sample_call_technical.wav   # Password reset / login issue (Windows TTS)
+│       └── test_tone_440hz.wav         # Silent tone (pipeline smoke test)
+│
+├── infra/
+│   ├── docker-compose.yml
+│   └── docker-compose.dev.yml
 │
 ├── mcp.yaml                        # MCP server declaration (7 tools, 2 resources, 2 prompts)
 ├── .env.example
 ├── .gitignore
-├── .dockerignore
 ├── Makefile
 └── README.md
 ```
@@ -443,54 +368,45 @@ Chosen over CrewAI for:
 - Native tool calling support
 - Production-grade error handling
 
-### 4.5 Event-Driven Communication
-Internal events for cross-cutting concerns (audit logging, analytics, notifications) without tight coupling.
+### 4.5 In-Memory First, DB-Ready
+Local dev runs entirely against `InMemoryConversationRepository` and `InMemoryMessageRepository` — no PostgreSQL or Redis required. The SQLAlchemy models and async session factory are wired and ready; swapping to the DB-backed repos is a one-line change in `dependencies.py`.
 
 ### 4.6 API Versioning
 `/api/v1/` prefix for all endpoints. Allows non-breaking evolution.
 
 ---
 
-## 5. Database Schema (Core)
+## 5. Data Models
+
+The ORM models that exist today (`backend/app/models/`):
 
 ```sql
--- conversations
+-- conversations  (conversation.py)
 CREATE TABLE conversations (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    customer_id UUID REFERENCES customers(id),
-    channel VARCHAR(20) NOT NULL DEFAULT 'chat',  -- chat, voice, api
-    status VARCHAR(20) NOT NULL DEFAULT 'active',  -- active, resolved, escalated
-    sentiment_score FLOAT,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW(),
-    metadata JSONB DEFAULT '{}'
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    channel     VARCHAR(20) NOT NULL DEFAULT 'chat',  -- chat | voice | api
+    status      VARCHAR(20) NOT NULL DEFAULT 'active', -- active | resolved | escalated | closed
+    summary     TEXT,                                  -- LLM-generated rolling summary
+    created_at  TIMESTAMPTZ DEFAULT NOW(),
+    updated_at  TIMESTAMPTZ DEFAULT NOW(),
+    metadata    JSONB DEFAULT '{}'
 );
 
--- messages
+-- messages  (message.py)
 CREATE TABLE messages (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    conversation_id UUID REFERENCES conversations(id) ON DELETE CASCADE,
-    role VARCHAR(20) NOT NULL,  -- user, assistant, system, agent
-    content TEXT NOT NULL,
-    agent_name VARCHAR(100),
+    id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    conversation_id  UUID REFERENCES conversations(id) ON DELETE CASCADE,
+    role             VARCHAR(20) NOT NULL,  -- user | assistant | system
+    content          TEXT NOT NULL,
+    agent_name       VARCHAR(100),
     confidence_score FLOAT,
-    token_count INTEGER,
-    latency_ms INTEGER,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    metadata JSONB DEFAULT '{}'
-);
-
--- audit_logs
-CREATE TABLE audit_logs (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    action VARCHAR(100) NOT NULL,
-    actor_id UUID,
-    resource_type VARCHAR(100),
-    resource_id UUID,
-    details JSONB DEFAULT '{}',
-    created_at TIMESTAMPTZ DEFAULT NOW()
+    latency_ms       INTEGER,
+    created_at       TIMESTAMPTZ DEFAULT NOW(),
+    metadata         JSONB DEFAULT '{}'
 );
 ```
+
+> In local development the system runs entirely against **in-memory repositories** (`repositories/in_memory.py`) — no PostgreSQL or Redis required. The SQLAlchemy models and `db/session.py` are wired and ready for production use.
 
 ---
 
@@ -551,12 +467,14 @@ CREATE TABLE audit_logs (
 ---
 
 ## 7. Production Improvements Roadmap
-- Circuit breaker pattern for external API calls (OpenAI, Twilio)
-- Message queue (RabbitMQ/SQS) for async processing
-- Read replicas for PostgreSQL
+- JWT authentication + RBAC (Phase 7)
+- Circuit breaker for OpenAI / Twilio / Deepgram calls
+- Swap in-memory repos for PostgreSQL-backed repos (one-line change in `dependencies.py`)
+- Redis session cache for horizontal scaling
+- OpenTelemetry + Prometheus + Grafana (Phase 6)
 - CDN for frontend static assets
-- WebSocket support for bidirectional real-time communication
-- A/B testing framework for agent prompt optimization
-- Feature flags for gradual rollout
+- Kubernetes manifests + GitHub Actions CI/CD (Phase 8)
+- A/B testing framework for agent prompt optimisation
 - Multi-tenancy support
+- PII masking in logs and storage
 - Data retention policies and GDPR compliance
