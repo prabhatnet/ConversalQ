@@ -7,12 +7,42 @@ import { AudioUpload } from "./components/AudioUpload";
 import { replayTranscript, fetchSummary, fetchQAScore } from "./api/client";
 import type {
   TranscriptFile,
+  TranscriptTurn,
   TranscriptReplayResponse,
   ConversationSummaryResponse,
   QAScoreResponse,
+  AudioTranscriptionResponse,
 } from "./types";
 
 type Tab = "replay" | "chat" | "audio";
+
+function transcriptToTurns(text: string): TranscriptTurn[] {
+  const sentences = text
+    .split(/(?<=[.!?])\s+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 3);
+  if (sentences.length === 0) {
+    return [{ speaker: "customer", text: text.trim(), timestamp_offset: 0 }];
+  }
+  const MAX_TURNS = 6;
+  if (sentences.length <= MAX_TURNS) {
+    return sentences.map((s, i) => ({
+      speaker: "customer" as const,
+      text: s,
+      timestamp_offset: i * 4,
+    }));
+  }
+  const chunkSize = Math.ceil(sentences.length / MAX_TURNS);
+  const turns: TranscriptTurn[] = [];
+  for (let i = 0; i < sentences.length; i += chunkSize) {
+    turns.push({
+      speaker: "customer",
+      text: sentences.slice(i, i + chunkSize).join(" "),
+      timestamp_offset: Math.floor(i / chunkSize) * 4,
+    });
+  }
+  return turns;
+}
 
 export default function App() {
   const [tab, setTab] = useState<Tab>("replay");
@@ -27,6 +57,16 @@ export default function App() {
 
   const [qaScore, setQaScore] = useState<QAScoreResponse | null>(null);
   const [qaLoading, setQaLoading] = useState(false);
+
+  // Audio Upload tab state
+  const [audioReplayResult, setAudioReplayResult] = useState<TranscriptReplayResponse | null>(null);
+  const [audioCallMeta, setAudioCallMeta] = useState<TranscriptFile | null>(null);
+  const [audioReplayLoading, setAudioReplayLoading] = useState(false);
+  const [audioSummary, setAudioSummary] = useState<ConversationSummaryResponse | null>(null);
+  const [audioSummaryLoading, setAudioSummaryLoading] = useState(false);
+  const [audioQaScore, setAudioQaScore] = useState<QAScoreResponse | null>(null);
+  const [audioQaLoading, setAudioQaLoading] = useState(false);
+  const [audioError, setAudioError] = useState<string | null>(null);
 
   async function handleTranscript(file: TranscriptFile) {
     setError(null);
@@ -72,6 +112,62 @@ export default function App() {
     setError(null);
   }
 
+  async function handleAudioTranscribed(transcription: AudioTranscriptionResponse) {
+    setAudioReplayResult(null);
+    setAudioSummary(null);
+    setAudioQaScore(null);
+    setAudioError(null);
+
+    if (!transcription.transcript.trim()) {
+      setAudioError("No speech detected in the audio file.");
+      return;
+    }
+
+    const turns = transcriptToTurns(transcription.transcript);
+    const meta: TranscriptFile = {
+      call_id: transcription.filename,
+      duration_seconds: transcription.duration_seconds,
+      channel: "audio-upload",
+      transcript: turns,
+    };
+    setAudioCallMeta(meta);
+    setAudioReplayLoading(true);
+    try {
+      const res = await replayTranscript(meta);
+      setAudioReplayResult(res);
+      setAudioSummaryLoading(true);
+      fetchSummary(res.conversation_id)
+        .then(setAudioSummary)
+        .catch(() => {})
+        .finally(() => setAudioSummaryLoading(false));
+    } catch (e) {
+      setAudioError((e as Error).message);
+    } finally {
+      setAudioReplayLoading(false);
+    }
+  }
+
+  async function handleAudioQAScore() {
+    if (!audioReplayResult) return;
+    setAudioQaLoading(true);
+    try {
+      const score = await fetchQAScore(audioReplayResult.conversation_id);
+      setAudioQaScore(score);
+    } catch (e) {
+      setAudioError((e as Error).message);
+    } finally {
+      setAudioQaLoading(false);
+    }
+  }
+
+  function resetAudio() {
+    setAudioReplayResult(null);
+    setAudioCallMeta(null);
+    setAudioSummary(null);
+    setAudioQaScore(null);
+    setAudioError(null);
+  }
+
   const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
     { id: "replay", label: "Transcript Replay", icon: <FileSearch size={14} /> },
     { id: "chat",   label: "Live Chat",          icon: <MessageSquare size={14} /> },
@@ -89,12 +185,12 @@ export default function App() {
               <span className="ml-2 text-xs text-slate-500">AI Call Center Assistant</span>
             </div>
           </div>
-          {result && tab === "replay" && (
+          {((result && tab === "replay") || (audioReplayResult && tab === "audio")) && (
             <button
-              onClick={reset}
+              onClick={tab === "replay" ? reset : resetAudio}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 transition-colors"
             >
-              <RotateCcw size={12} /> New replay
+              <RotateCcw size={12} /> {tab === "replay" ? "New replay" : "New upload"}
             </button>
           )}
         </div>
@@ -160,13 +256,41 @@ export default function App() {
 
         {tab === "audio" && (
           <div className="space-y-6">
-            <div>
-              <h1 className="text-2xl font-bold text-slate-100">Audio Upload</h1>
-              <p className="text-sm text-slate-400 mt-1">
-                Upload a call recording and transcribe it with Deepgram Nova-2. Supports WAV, MP3, MP4, OGG, WEBM, and FLAC up to 25 MB.
-              </p>
-            </div>
-            <AudioUpload />
+            {!audioReplayResult && !audioReplayLoading && (
+              <>
+                <div>
+                  <h1 className="text-2xl font-bold text-slate-100">Audio Upload</h1>
+                  <p className="text-sm text-slate-400 mt-1">
+                    Upload a call recording to transcribe with Deepgram Nova-2 and replay through the multi-agent system for full analysis.
+                  </p>
+                </div>
+                <AudioUpload onTranscribed={handleAudioTranscribed} />
+                {audioError && (
+                  <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">
+                    {audioError}
+                  </div>
+                )}
+              </>
+            )}
+
+            {audioReplayLoading && (
+              <div className="flex flex-col items-center justify-center py-24 gap-4">
+                <Loader2 size={32} className="animate-spin text-indigo-400" />
+                <p className="text-sm text-slate-400">Running transcript through agents…</p>
+              </div>
+            )}
+
+            {audioReplayResult && !audioReplayLoading && (
+              <ReplayResults
+                result={audioReplayResult}
+                callMeta={audioCallMeta ?? undefined}
+                summary={audioSummary}
+                summaryLoading={audioSummaryLoading}
+                qaScore={audioQaScore}
+                qaLoading={audioQaLoading}
+                onRequestQAScore={handleAudioQAScore}
+              />
+            )}
           </div>
         )}
       </main>

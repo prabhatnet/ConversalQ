@@ -1,28 +1,31 @@
 import { useRef, useState, type DragEvent, type ChangeEvent } from "react";
-import { Upload, Mic, AlertCircle, CheckCircle2, Clock, BarChart2 } from "lucide-react";
+import { Upload, Mic, AlertCircle } from "lucide-react";
 import { uploadAudio } from "../api/client";
 import type { AudioTranscriptionResponse } from "../types";
 
 const ACCEPTED = ".wav,.mp3,.mp4,.m4a,.ogg,.webm,.flac,.aac";
 const MAX_MB = 25;
 
-export function AudioUpload() {
+interface Props {
+  onTranscribed: (result: AudioTranscriptionResponse) => void;
+}
+
+export function AudioUpload({ onTranscribed }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<AudioTranscriptionResponse | null>(null);
 
-  async function process(file: File) {    if (file.size > MAX_MB * 1024 * 1024) {
+  async function process(file: File) {
+    if (file.size > MAX_MB * 1024 * 1024) {
       setError(`File is too large. Maximum size is ${MAX_MB} MB.`);
       return;
     }
     setError(null);
-    setResult(null);
     setLoading(true);
     try {
       const res = await uploadAudio(file);
-      setResult(res);
+      onTranscribed(res);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -77,72 +80,10 @@ export function AudioUpload() {
         )}
       </div>
 
-      {/* Error */}
       {error && (
         <div className="flex items-start gap-2 rounded-xl border border-rose-800 bg-rose-950/40 px-4 py-3 text-sm text-rose-300">
           <AlertCircle size={16} className="mt-0.5 shrink-0" />
           <span>{error}</span>
-        </div>
-      )}
-
-      {/* Result */}
-      {result && (
-        <div className="rounded-2xl border border-slate-700 bg-slate-900 overflow-hidden">
-          {/* Header row */}
-          <div className="flex items-center justify-between border-b border-slate-800 px-5 py-3">
-            <div className="flex items-center gap-2 text-sm font-medium text-slate-200">
-              <CheckCircle2 size={15} className="text-emerald-400" />
-              <span className="truncate max-w-xs">{result.filename}</span>
-            </div>
-            <div className="flex items-center gap-4 text-xs text-slate-400">
-              <span className="flex items-center gap-1">
-                <Clock size={12} />
-                {result.duration_seconds.toFixed(1)}s
-              </span>
-              <span className="flex items-center gap-1">
-                <BarChart2 size={12} />
-                {Math.round(result.confidence * 100)}% confidence
-              </span>
-              {!result.stt_available && (
-                <span className="rounded-full bg-amber-900/50 border border-amber-700 px-2 py-0.5 text-amber-300 text-xs">
-                  STT unavailable — set DEEPGRAM_API_KEY
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Transcript */}
-          <div className="px-5 py-4">
-            {result.transcript ? (
-              <p className="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">{result.transcript}</p>
-            ) : (
-              <p className="text-sm text-slate-500 italic">
-                {result.stt_available
-                  ? "No speech detected in audio."
-                  : "Transcription skipped — DEEPGRAM_API_KEY not configured."}
-              </p>
-            )}
-          </div>
-
-          {/* Word timestamps */}
-          {result.words.length > 0 && (
-            <details className="border-t border-slate-800">
-              <summary className="cursor-pointer px-5 py-2 text-xs text-slate-500 hover:text-slate-300 select-none">
-                {result.words.length} word timestamps
-              </summary>
-              <div className="flex flex-wrap gap-1.5 px-5 pb-4 pt-2">
-                {result.words.map((w, i) => (
-                  <span
-                    key={i}
-                    title={`${w.start.toFixed(2)}s – ${w.end.toFixed(2)}s  (${Math.round(w.confidence * 100)}%)`}
-                    className="rounded-md bg-slate-800 px-2 py-0.5 text-xs text-slate-300 cursor-default"
-                  >
-                    {w.word}
-                  </span>
-                ))}
-              </div>
-            </details>
-          )}
         </div>
       )}
     </div>
