@@ -1,8 +1,9 @@
 ﻿import { useState } from "react";
-import { Loader2, Mic, RotateCcw, FileSearch, MessageSquare } from "lucide-react";
+import { Loader2, Mic, RotateCcw, FileSearch, MessageSquare, Phone } from "lucide-react";
 import { TranscriptInput } from "./components/TranscriptInput";
 import { ReplayResults } from "./components/ReplayResults";
 import { LiveChat } from "./components/LiveChat";
+import { LiveVoice } from "./components/LiveVoice";
 import { AudioUpload } from "./components/AudioUpload";
 import { replayTranscript, fetchSummary, fetchQAScore } from "./api/client";
 import type {
@@ -14,7 +15,7 @@ import type {
   AudioTranscriptionResponse,
 } from "./types";
 
-type Tab = "replay" | "chat" | "audio";
+type Tab = "replay" | "chat" | "voice" | "audio";
 
 function transcriptToTurns(text: string): TranscriptTurn[] {
   const sentences = text
@@ -171,6 +172,7 @@ export default function App() {
   const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
     { id: "replay", label: "Transcript Replay", icon: <FileSearch size={14} /> },
     { id: "chat",   label: "Live Chat",          icon: <MessageSquare size={14} /> },
+    { id: "voice",  label: "Live Voice",          icon: <Phone size={14} /> },
     { id: "audio",  label: "Audio Upload",       icon: <Mic size={14} /> },
   ];
 
@@ -253,6 +255,8 @@ export default function App() {
         )}
 
         {tab === "chat" && <LiveChat />}
+
+        {tab === "voice" && <LiveVoice />}
 
         {tab === "audio" && (
           <div className="space-y-6">

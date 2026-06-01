@@ -64,3 +64,16 @@ export async function uploadAudio(file: File): Promise<AudioTranscriptionRespons
   return handleResponse<AudioTranscriptionResponse>(res);
 }
 
+export async function speakText(text: string, voice?: string): Promise<ArrayBuffer> {
+  const res = await fetch(`${BASE}/voice/speak`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text, voice: voice ?? null }),
+  });
+  if (!res.ok) {
+    const t = await res.text();
+    throw new Error(`${res.status} ${res.statusText}: ${t}`);
+  }
+  return res.arrayBuffer();
+}
+

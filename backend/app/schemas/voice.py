@@ -45,6 +45,18 @@ class AudioTranscriptionResponse(BaseModel):
     )
 
 
+class SpeakRequest(BaseModel):
+    """Request body for POST /api/v1/voice/speak."""
+    text: str = Field(
+        max_length=4096,
+        description="Plain text to synthesize into speech.",
+    )
+    voice: Optional[str] = Field(
+        default=None,
+        description="Voice override. One of: alloy, echo, fable, onyx, nova, shimmer.",
+    )
+
+
 # ---------------------------------------------------------------------------
 # Twilio webhook documentation models
 # These are NOT used for FastAPI body parsing (Twilio sends form-encoded data).

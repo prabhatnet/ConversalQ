@@ -63,6 +63,7 @@ from app.dependencies import get_voice_service
 from app.schemas.voice import (
     AudioTranscriptionResponse,
     CallSessionResponse,
+    SpeakRequest,
     VoiceSessionsResponse,
     WordTimestamp,
 )
@@ -391,6 +392,49 @@ async def upload_audio(
         content_type=content_type,
         stt_available=stt.is_available,
     )
+
+
+@router.post(
+    "/speak",
+    summary="Synthesize text to speech",
+    description=(
+        "Convert text to speech using OpenAI TTS (tts-1 model) and return raw MP3 audio bytes. "
+        "Used by the Live Voice Support UI to speak agent responses. "
+        "Returns HTTP 503 if the OpenAI API key is not configured or synthesis fails."
+    ),
+    responses={
+        200: {"content": {"audio/mpeg": {}}, "description": "MP3 audio bytes"},
+        503: {"description": "TTS unavailable"},
+    },
+    response_class=Response,
+)
+async def speak(body: SpeakRequest) -> Response:
+    """Synthesize text to MP3 using OpenAI TTS and stream bytes back."""
+    from app.voice.tts import get_tts_service
+
+    text = body.text.strip()
+    if not text:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="text must not be empty.",
+        )
+
+    try:
+        tts = get_tts_service()
+        audio_bytes = await tts.synthesize(
+            text=text,
+            voice=body.voice or None,
+            response_format="mp3",
+        )
+    except Exception as exc:
+        log.warning("tts_speak_failed", error=str(exc))
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="TTS synthesis failed. Check OPENAI_API_KEY configuration.",
+        ) from exc
+
+    log.info("tts_speak_complete", chars=len(text), bytes_produced=len(audio_bytes))
+    return Response(content=audio_bytes, media_type="audio/mpeg")
 
 
 # ---------------------------------------------------------------------------
