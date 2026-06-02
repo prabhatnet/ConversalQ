@@ -237,10 +237,19 @@ ConversalQ/
 │   │   ├── api/v1/
 │   │   │   ├── router.py           # Aggregates all v1 sub-routers
 │   │   │   ├── chat.py             # Chat · replay · history · summary · qa-score · status
-│   │   │   ├── voice.py            # Twilio webhooks · audio upload · sessions · WS stream
+│   │   │   ├── voice.py            # Twilio webhooks · audio upload · speak · sessions · WS stream
 │   │   │   ├── knowledge.py        # Document ingest / search / list / delete
 │   │   │   ├── agents.py           # Agent graph introspection
 │   │   │   └── health.py           # Liveness probe
+│   │   │
+│   │   ├── api/middleware/
+│   │   │   ├── error_handler.py    # Global domain exception → HTTP status mapping
+│   │   │   ├── rate_limit.py       # Sliding-window rate limiter (per-IP, in-memory, 60 req/min)
+│   │   │   └── request_id.py       # X-Request-ID injection
+│   │   │
+│   │   ├── guardrails/
+│   │   │   ├── prompt_injection.py # Heuristic pattern scan — 8 categories, sync, <1ms
+│   │   │   └── content_moderator.py # OpenAI omni-moderation-latest, async, opt-in
 │   │   │
 │   │   ├── agents/
 │   │   │   ├── graph.py            # LangGraph StateGraph compilation (@lru_cache)
@@ -249,6 +258,10 @@ ConversalQ/
 │   │   │   ├── specialists.py      # 5 specialist nodes via factory (_make_specialist_node)
 │   │   │   ├── orchestration.py    # AgentOrchestrationService (RAG prefetch + graph invoke)
 │   │   │   └── qa_scorer.py        # QualityScoringAgent (GPT-4o function calling, 4-dim)
+│   │   │
+│   │   ├── guardrails/
+│   │   │   ├── prompt_injection.py # Heuristic pattern scan — 8 categories, sync, zero latency
+│   │   │   └── content_moderator.py # OpenAI omni-moderation-latest, async, opt-in
 │   │   │
 │   │   ├── services/
 │   │   │   ├── chat_service.py      # Message processing, memory injection, status lifecycle
@@ -463,6 +476,13 @@ CREATE TABLE messages (
 - "LangSmith tracing is configured entirely through env vars at startup — no decorators or instrumentation code in the agent graph itself, because LangChain/LangGraph auto-detects the `LANGCHAIN_TRACING_V2` flag"
 - "I used `mcp.yaml` rather than a running MCP proxy because the declarative format is enough for IDE tools like Copilot and Cursor to discover and call the endpoints directly, without a sidecar process"
 - "The MCP config maps all 9 REST endpoints as named tools with typed parameters, which means an AI agent using the MCP client can orchestrate ConversalQ end-to-end — send a message, score the conversation, search the knowledge base — all in one agentic workflow"
+
+### Phase 6 — Guardrails
+- "Guardrails are layered: the rate limiter is a Starlette middleware (outermost), prompt injection is a synchronous regex scan that runs in <1ms before every agent call, and content moderation is an async OpenAI API call that is opt-in because it adds ~100ms latency"
+- "I chose heuristic pattern matching for injection detection rather than a second LLM call — it's deterministic, auditable, and has zero marginal cost; the 8 pattern categories cover the most common OWASP LLM Top 10 attack vectors"
+- "The rate limiter uses a sliding window (deque of timestamps) rather than a fixed window to avoid the thundering herd problem at window boundaries — if the limit is 60/min, a burst of 60 requests at 00:59 and 60 more at 01:01 is still correctly throttled"
+- "Content moderation uses OpenAI's `omni-moderation-latest` model and fails open: if the API call fails (network error, quota exceeded), the message is allowed through with a warning log rather than blocking the user — availability over perfect security for a call center context"
+- "The three new exception types (`PromptInjectionError` → 400, `ContentModerationError` → 422, `RateLimitExceededError` → 429) are mapped in the existing `error_handler.py` table — no new middleware needed for error formatting"
 
 ---
 

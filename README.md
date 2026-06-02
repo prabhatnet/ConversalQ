@@ -233,6 +233,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for full system design.
 | MCP | `mcp.yaml` — 7 tools, 2 resources, 2 prompts over HTTP transport |
 | Frontend | React 19, Vite 8, Tailwind CSS 4, lucide-react |
 | Voice | Twilio 9.4 (TwiML + webhook validation), Deepgram SDK 3.7 (live STT + file upload), OpenAI TTS |
+| Guardrails | Rate limiting (sliding window, per-IP), prompt injection detection (heuristic), OpenAI content moderation (opt-in) |
 | Observability | OpenTelemetry, Prometheus, Grafana |
 | Infrastructure | Docker, Kubernetes, GitHub Actions |
 
@@ -247,6 +248,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for full system design.
 - [x] Phase 5+: Audio File Upload (Deepgram pre-recorded API, drag-and-drop UI)
 - [x] Phase 5+: LangSmith Tracing (opt-in, zero-instrumentation)
 - [x] Phase 5+: MCP Server Declaration (mcp.yaml, 7 tools)
+- [x] Phase 6+: Guardrails — rate limiting, prompt injection detection, content moderation
 - [ ] Phase 6: Observability + Analytics
 - [ ] Phase 7: Enterprise Security + RBAC
 - [ ] Phase 8: Cloud Deployment + Scaling
