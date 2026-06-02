@@ -3,6 +3,7 @@ Chat API endpoints — handles synchronous and streaming chat interactions.
 
 Phase 4: Added conversation history, summary, and status management endpoints.
 Week 2: Added QA scoring endpoint and transcript replay.
+Phase 6: Guardrails — prompt injection detection + optional content moderation.
 """
 
 from typing import Optional
@@ -12,7 +13,10 @@ import structlog
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 
+from app.config import Settings, get_settings
+from app.core.exceptions import ContentModerationError, ConversationNotFoundError, PromptInjectionError
 from app.dependencies import get_chat_service, get_qa_service
+from app.guardrails.prompt_injection import detect_injection
 from app.schemas.chat import (
     ChatRequest,
     ChatResponse,
@@ -25,17 +29,50 @@ from app.schemas.chat import (
     ReplayTurnResult,
 )
 from app.schemas.qa import QAScoreRequest, QAScoreResponse
-from app.services.qa_service import QAService
 from app.services.chat_service import ChatService
-from app.core.exceptions import ConversationNotFoundError
+from app.services.qa_service import QAService
 
 router = APIRouter()
 logger = structlog.get_logger(__name__)
 
 
+async def _run_guardrails(message: str, settings: Settings) -> None:
+    """
+    Run all enabled guardrail checks on a user message.
+
+    Order of checks (fastest → slowest):
+    1. Prompt injection / jailbreak detection  — synchronous, zero latency
+    2. OpenAI content moderation              — async, opt-in via MODERATION_ENABLED
+
+    Raises ``PromptInjectionError`` or ``ContentModerationError`` on violation.
+    """
+    # --- 1. Prompt injection (synchronous, always on) ---
+    injection = detect_injection(message)
+    if injection.detected:
+        logger.warning(
+            "guardrail_injection_blocked",
+            reason=injection.reason,
+            message_preview=message[:80],
+        )
+        raise PromptInjectionError(reason=injection.reason or "injection attempt")
+
+    # --- 2. Content moderation (async, opt-in) ---
+    if settings.moderation_enabled:
+        from app.guardrails.content_moderator import get_content_moderator
+        result = await get_content_moderator().check(message)
+        if result.flagged:
+            logger.warning(
+                "guardrail_content_blocked",
+                reason=result.reason,
+                message_preview=message[:80],
+            )
+            raise ContentModerationError(reason=result.reason or "content policy violation")
+
+
 @router.post("", response_model=ChatResponse)
 async def chat(
     request: ChatRequest,
+    settings: Settings = Depends(get_settings),
     chat_service: ChatService = Depends(get_chat_service),
 ) -> ChatResponse:
     """
@@ -43,12 +80,15 @@ async def chat(
 
     - Creates a new conversation if conversation_id is not provided.
     - Maintains conversation context across messages when conversation_id is reused.
+    - Guardrails: prompt injection detection + optional content moderation.
     """
     logger.info(
         "chat_request_received",
         conversation_id=str(request.conversation_id) if request.conversation_id else None,
         message_length=len(request.message),
     )
+
+    await _run_guardrails(request.message, settings)
 
     response = await chat_service.process_message(
         message=request.message,
@@ -68,6 +108,7 @@ async def chat(
 @router.post("/stream")
 async def chat_stream(
     request: ChatRequest,
+    settings: Settings = Depends(get_settings),
     chat_service: ChatService = Depends(get_chat_service),
 ) -> StreamingResponse:
     """
@@ -82,6 +123,8 @@ async def chat_stream(
         conversation_id=str(request.conversation_id) if request.conversation_id else None,
         message_length=len(request.message),
     )
+
+    await _run_guardrails(request.message, settings)
 
     return StreamingResponse(
         chat_service.process_message_stream(

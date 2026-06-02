@@ -48,6 +48,28 @@ class ValidationError(ConversalQError):
         super().__init__(message=message, code="VALIDATION_ERROR")
 
 
+class PromptInjectionError(ConversalQError):
+    """Raised when a prompt injection or jailbreak pattern is detected in user input."""
+
+    def __init__(self, reason: str = "injection attempt detected"):
+        super().__init__(
+            message="Your message contains patterns that are not allowed.",
+            code="PROMPT_INJECTION_DETECTED",
+        )
+        self.reason = reason
+
+
+class ContentModerationError(ConversalQError):
+    """Raised when user input is flagged by the content moderation service."""
+
+    def __init__(self, reason: str = "content policy violation"):
+        super().__init__(
+            message="Your message was flagged by our content moderation system and cannot be processed.",
+            code="CONTENT_MODERATION_FLAGGED",
+        )
+        self.reason = reason
+
+
 class VoiceServiceError(ConversalQError):
     """Raised when the voice pipeline encounters an unrecoverable error."""
 

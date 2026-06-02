@@ -63,6 +63,12 @@ class Settings(BaseSettings):
     # --- Rate Limiting ---
     rate_limit_per_minute: int = 60
 
+    # --- Guardrails ---
+    moderation_enabled: bool = Field(
+        default=False,
+        description="Run OpenAI Moderation API on every incoming chat message (adds ~100ms latency)",
+    )
+
     # --- CORS ---
     cors_origins: List[str] = ["http://localhost:3000", "http://localhost:5173", "http://localhost:8000"]
 

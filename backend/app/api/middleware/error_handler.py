@@ -14,8 +14,10 @@ from fastapi.responses import JSONResponse
 
 from app.core.exceptions import (
     ConversalQError,
+    ContentModerationError,
     ConversationNotFoundError,
     LLMServiceError,
+    PromptInjectionError,
     RateLimitExceededError,
     ValidationError,
 )
@@ -28,6 +30,8 @@ _EXCEPTION_STATUS_MAP: dict[type[ConversalQError], int] = {
     ValidationError: 422,
     RateLimitExceededError: 429,
     LLMServiceError: 502,
+    PromptInjectionError: 400,
+    ContentModerationError: 422,
 }
 
 

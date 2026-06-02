@@ -18,6 +18,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.middleware.error_handler import register_exception_handlers
+from app.api.middleware.rate_limit import RateLimitMiddleware
 from app.api.middleware.request_id import RequestIdMiddleware
 from app.api.v1.router import api_v1_router
 from app.config import get_settings
@@ -75,6 +76,7 @@ def create_app() -> FastAPI:
     )
 
     # --- Middleware (order matters: outermost first) ---
+    application.add_middleware(RateLimitMiddleware, requests_per_minute=settings.rate_limit_per_minute)
     application.add_middleware(RequestIdMiddleware)
     application.add_middleware(
         CORSMiddleware,
