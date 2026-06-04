@@ -1,3 +1,13 @@
+---
+title: ConversalQ
+emoji: 📞
+colorFrom: blue
+colorTo: purple
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # ConversalQ — Enterprise AI Call Center Assistant
 
 Production-grade multi-agent AI system for automating call center operations.

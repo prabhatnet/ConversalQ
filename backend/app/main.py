@@ -16,6 +16,7 @@ from typing import AsyncIterator
 import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.api.middleware.error_handler import register_exception_handlers
 from app.api.middleware.rate_limit import RateLimitMiddleware
@@ -91,6 +92,13 @@ def create_app() -> FastAPI:
 
     # --- Routers ---
     application.include_router(api_v1_router, prefix="/api/v1")
+
+    # --- SPA Fallback (only present in the Docker/production build) ---
+    # Serves the React bundle; html=True returns index.html for unknown paths
+    # so client-side routing works. Must be mounted LAST.
+    _static_dir = os.path.join(os.path.dirname(__file__), "..", "static")
+    if os.path.isdir(_static_dir):
+        application.mount("/", StaticFiles(directory=_static_dir, html=True), name="spa")
 
     return application
 
